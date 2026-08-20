@@ -206,4 +206,35 @@ html::before {
     left: 10%;
     width: 80%;
 }
- 
+
+/* 隐藏无障碍标签不影响视觉 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+/* 记住我模块样式 */
+.remember-me {
+    width: 80%;
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.4rem;
+    color: #666;
+}
+.remember-me input[type="checkbox"] {
+    width: 1.6rem;
+    height: 1.6rem;
+    accent-color: rgb(144, 129, 241);
+    cursor: pointer;
+}
+.remember-me label {
+    cursor: pointer;
+}
