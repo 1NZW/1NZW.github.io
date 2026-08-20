@@ -5,18 +5,47 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/index.css">
+    <link rel="stylesheet" href="css/index1.css">
     <title>登录界面</title>
 </head>
 
+<script>
+    const submitBtn = document.querySelector('.submit');
+    const form = document.querySelector('form');
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        // 切换为加载状态
+        submitBtn.value = '登录中...';
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.8';
+        
+        // 模拟接口请求2秒后恢复状态（可替换为实际登录接口逻辑）
+        setTimeout(() => {
+            submitBtn.value = 'Login';
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            alert('登录验证通过');
+        }, 2000);
+    });
+</script>
+
 <body>
     <div class="box">
-        <div class="left"></div>
+        <div class="left" aria-label="装饰背景图区域"></div>
         <div class="right">
             <h4>登 录</h4>
-            <form action="">
-                <input class="acc" type="text" placeholder="用户名">
-                <input class="acc" type="password" placeholder="密码">
+            <form action="" method="POST">
+                <!-- 补充隐藏label提升无障碍体验 -->
+                <label class="sr-only" for="username">用户名</label>
+                <input class="acc" id="username" name="username" type="text" placeholder="请输入用户名" required>
+                <label class="sr-only" for="password">密码</label>
+                <input class="acc" id="password" name="password" type="password" placeholder="请输入密码" required>
+                <!-- 新增记住我复选框模块 -->
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember">记住我7天</label>
+                </div>
                 <input class="submit" type="submit" value="Login">
             </form>
             <div class="fn">
@@ -28,3 +57,5 @@
 </body>
 
 </html>
+
+
