@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>洛林设计</title>
     <!-- Font-Awesome 本地图标库 -->
-    <link rel="stylesheet" href="fonts/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="fonts/font-awesome.min.css">
     <link rel="stylesheet" href="css/denglu.css">
 </head>
 
@@ -84,7 +84,7 @@
 
             // 如果已经登录，直接跳回首页
             if (localStorage.getItem(STORAGE_KEY)) {
-                window.location.href = './home.html';
+                window.location.href = './index.html';
                 return;
             }
 
@@ -135,7 +135,7 @@
                     }
 
                     // 跳转到首页
-                    window.location.href = './home.html?login=success';
+                    window.location.href = './index.html?login=success';
                 }, 800);
             });
 
