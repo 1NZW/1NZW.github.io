@@ -6,9 +6,9 @@
     <title>洛林 · 设计笔记</title>
 
     <!-- 本地字体：Inter -->
-    <link rel="stylesheet" href="fonts/inter.css">
+    <link rel="stylesheet" href="fonts/inter/web/inter.css">
     <!-- 本地图标库：Font-Awesome -->
-    <link rel="stylesheet" href="fonts/font-awesome.min.css">
+    <link rel="stylesheet" href="fonts/font-awesome/css/font-awesome.min.css">
 
     <style>
         /* ===== 重置 & 基础 ===== */
@@ -45,7 +45,7 @@
             min-height: 100vh;
             padding: 0 20px;
             /* ===== 背景图片（自适应） ===== */
-            background-image: url('photos/be.jpg');
+            background-image: url('./photos/be.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -62,7 +62,7 @@
         }
         /* 图片加载成功后添加类，移除后备渐变 */
         body.bg-loaded {
-            background-image: url('photos/be.jpg');
+            background-image: url('./photos/be.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -906,7 +906,7 @@
         <!-- ==================== Hero 区域 ==================== -->
         <section class="hero">
             <div class="hero-avatar">
-                <img src="photos/left.webp" alt="洛林" id="avatarImg" />
+                <img src="./photos/left.webp" alt="洛林" id="avatarImg" />
                 <div class="avatar-fallback">林</div>
             </div>
             <div class="hero-content">
@@ -1084,7 +1084,7 @@
                     // 加载失败，保持后备渐变
                     document.body.classList.remove('bg-loaded');
                 };
-                img.src = 'photos/be.jpg';
+                img.src = './photos/be.jpg';
             })();
 
             // ---- 存储键名 ----
@@ -1252,5 +1252,3 @@
 
 </body>
 </html>
-
-
