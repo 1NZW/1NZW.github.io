@@ -1,0 +1,515 @@
+/* ===== 全局样式重置与基础配置 ===== */
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+} /* 适配多设备的根元素字体基准，保证最小可读性下限 */
+:root {
+--primary: #7C6FF7;
+--primary-light: #A78BFA;
+--primary-dark: #5B4FD9;
+--gradient-main: linear-gradient(135deg, #7C6FF7 0%, #A78BFA 50%, #8EC5FC 100%);
+--glass-bg: rgba(255, 255, 255, 0.75);
+--glass-border: rgba(255, 255, 255, 0.30);
+--text-dark: #1E1B2E;
+--text-muted: #6B6A7A;
+--radius: 24px;
+--radius-sm: 14px;
+--transition: 0.30s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+/* 新增全局最小字体保护变量 */
+--font-min: 12px;
+} html {
+/* 调整基准字体初始值，保留响应式缩放空间 */
+font-size: 10.5px;
+/* 强制最小字号兜底，杜绝系统级字体被压缩 */
+min-font-size: var(--font-min);
+} /* 响应式字体基准优化，避免小屏字体过度缩小 */
+@media (max-width: 1200px) {
+html { font-size: 9.8px; }
+}
+@media (max-width: 768px) {
+html { font-size: 9.2px; }
+}
+@media (max-width: 480px) {
+html { font-size: 8.5px; }
+}
+@media (max-width: 360px) {
+html { font-size: 8px; }
+} /* ===== 背景层优化 ===== */
+html::before {
+content: '';
+width: 100%;
+height: 100%;
+position: fixed;
+z-index: -2;
+background: linear-gradient(120deg, #f0e6ff 0%, #e0c3fc 40%, #8ec5fc 100%) no-repeat center / cover;
+transform: translateZ(0);
+will-change: transform;
+} /* 增加第二层动态光晕 */
+html::after {
+content: '';
+position: fixed;
+top: -30%;
+right: -20%;
+width: 60%;
+height: 80%;
+background: radial-gradient(ellipse at 70% 30%, rgba(124, 111, 247, 0.08) 0%, transparent 70%);
+pointer-events: none;
+z-index: -1;
+} /* ===== 选中文本样式 ===== */
+::selection {
+color: #fff;
+background-color: var(--primary);
+text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+} /* ===== 滚动条美化 ===== */
+::-webkit-scrollbar {
+width: 6px;
+}
+::-webkit-scrollbar-track {
+background: rgba(255,255,255,0.2);
+}
+::-webkit-scrollbar-thumb {
+background: rgba(124, 111, 247, 0.5);
+border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+background: rgba(124, 111, 247, 0.7);
+} /* ===== 登录容器优化 ===== */
+.box {
+display: flex;
+overflow: hidden;
+/* 优化容器宽高比例，小屏占比更合理 */
+width: min(86rem, 92vw);
+height: min(54rem, 90vh);
+background: var(--glass-bg);
+backdrop-filter: blur(20px) saturate(1.8);
+-webkit-backdrop-filter: blur(20px) saturate(1.8);
+border: 1px solid var(--glass-border);
+border-radius: var(--radius);
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+box-shadow: 0 20px 60px rgba(124, 111, 247, 0.20), 0 8px 24px rgba(0, 0, 0, 0.04);
+will-change: transform, box-shadow;
+transition: all 0.3s ease;
+} .box:hover {
+box-shadow: 0 24px 72px rgba(124, 111, 247, 0.25);
+} /* ===== 左侧装饰区域 ===== */
+.box .left {
+position: relative;
+width: 35%;
+height: 100%;
+overflow: hidden;
+flex-shrink: 0;
+} @media (max-width: 992px) {
+.box .left {
+width: 30%;
+}
+} @media (max-width: 768px) {
+.box .left {
+display: none;
+}
+} .box .left::before {
+content: '';
+position: absolute;
+inset: 0;
+background-image: url(../left.webp);
+background-size: cover;
+background-position: center;
+background-blend-mode: overlay;
+background-color: rgba(124, 111, 247, 0.15);
+transition: transform 0.6s ease;
+} .box .left:hover::before {
+transform: scale(1.02);
+} /* 左侧品牌标识 */
+.left-brand {
+position: absolute;
+bottom: 40px;
+left: 0;
+right: 0;
+text-align: center;
+color: #fff;
+z-index: 2;
+text-shadow: 0 4px 20px rgba(0, 0, 0, 0.20);
+pointer-events: none;
+} .left-brand i {
+font-size: 3.6rem;
+display: block;
+margin-bottom: 8px;
+opacity: 0.9;
+} .left-brand span {
+font-size: 2rem;
+font-weight: 700;
+letter-spacing: 0.2rem;
+background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.6));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+} /* 左侧渐变遮罩增强 */
+.box .left::after {
+content: '';
+position: absolute;
+inset: 0;
+background: linear-gradient(180deg, transparent 40%, rgba(124, 111, 247, 0.30) 100%);
+pointer-events: none;
+} /* ===== 右侧表单区域优化 ===== */
+.box .right {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+width: 65%;
+padding: 3rem 3.5rem;
+} @media (max-width: 992px) {
+.box .right {
+width: 70%;
+padding: 2.8rem 3rem;
+}
+} @media (max-width: 768px) {
+.box .right {
+width: 100%;
+padding: 2.5rem 2.8rem;
+}
+} /* ===== 登录头部优化 ===== */
+.login-header {
+text-align: center;
+margin-bottom: 2.4rem;
+width: 100%;
+} .login-header .logo-icon {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+width: 5.2rem;
+height: 5.2rem;
+background: var(--gradient-main);
+border-radius: 16px;
+color: #fff;
+font-size: 2.2rem;
+margin-bottom: 1rem;
+box-shadow: 0 8px 24px rgba(124, 111, 247, 0.30);
+} .box .right h4 {
+color: var(--primary);
+font-size: 2.8rem;
+font-weight: 700;
+letter-spacing: 0.05rem;
+margin: 0;
+/* 增加字重优化小屏可读性 */
+font-weight: 600;
+} .login-header p {
+color: var(--text-muted);
+font-size: 1.5rem;
+margin-top: 0.6rem;
+line-height: 1.4;
+} /* ===== 错误提示优化 ===== */
+.login-error {
+background: rgba(232, 77, 109, 0.08);
+color: #E84D6D;
+padding: 1rem 1.6rem;
+border-radius: 40px;
+font-size: 1.3rem;
+margin-bottom: 1.4rem;
+display: none;
+align-items: center;
+gap: 8px;
+border: 1px solid rgba(232, 77, 109, 0.15);
+/* 缩小错误提示宽度，和输入框保持统一 */
+width: 78%;
+justify-content: center;
+} .login-error.show {
+display: flex;
+} .login-error i {
+font-size: 1.4rem;
+} /* ===== 表单 ===== */
+.box .right form {
+display: flex;
+flex-wrap: wrap;
+justify-content: center;
+width: 100%;
+} /* ===== 输入框组优化 ===== */
+.input-group {
+position: relative;
+/* 缩小输入容器整体宽度，不再铺满大区域 */
+width: 78%;
+margin-top: 2.6rem;
+} .input-group:first-of-type {
+margin-top: 0;
+} .input-group .input-icon {
+position: absolute;
+left: 0;
+top: 50%;
+transform: translateY(-50%);
+color: var(--text-muted);
+font-size: 1.7rem;
+opacity: 0.6;
+transition: var(--transition);
+pointer-events: none;
+} .box .right form .acc {
+outline: none;
+/* 缩小输入框内容宽度，避免过长导致横向局促 */
+width: 90%;
+height: 4.8rem;
+font-size: 1.6rem;
+/* 增加行高优化文字对齐 */
+line-height: 1.5;
+padding: 0 0 0.5rem 3rem;
+border: none;
+border-bottom: 2px solid rgba(124, 111, 247, 0.20);
+color: var(--text-dark);
+background-color: transparent;
+transition: var(--transition);
+font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+} .box .right form .acc::placeholder {
+color: var(--text-muted);
+opacity: 0.5;
+font-weight: 400;
+transition: var(--transition);
+} .box .right form .acc:focus {
+border-bottom-color: var(--primary);
+} .box .right form .acc:focus::placeholder {
+opacity: 0.7;
+transform: translateX(0.3rem);
+} .box .right form .acc:focus + .input-icon,
+.input-group:focus-within .input-icon {
+opacity: 1;
+color: var(--primary);
+} /* ===== 记住我 ===== */
+.remember-me {
+/* 对齐输入框宽度 */
+width: 78%;
+margin-top: 2rem;
+display: flex;
+align-items: center;
+gap: 0.8rem;
+font-size: 1.4rem;
+color: var(--text-muted);
+} .remember-me input[type="checkbox"] {
+width: 1.6rem;
+height: 1.6rem;
+accent-color: var(--primary);
+cursor: pointer;
+flex-shrink: 0;
+} .remember-me label {
+cursor: pointer;
+user-select: none;
+} .remember-me label:hover {
+color: var(--text-dark);
+} /* ===== 提交按钮优化 ===== */
+.right .submit {
+/* 缩小按钮宽度，和输入框比例更协调 */
+width: 62%;
+height: 4.8rem;
+color: #fff;
+background: var(--gradient-main);
+font-size: 1.7rem;
+font-weight: 600;
+border: none;
+border-radius: 40px;
+margin-top: 3.2rem;
+cursor: pointer;
+margin-inline: auto;
+transition: var(--transition);
+letter-spacing: 0.1rem;
+box-shadow: 0 6px 24px rgba(124, 111, 247, 0.30);
+} .right .submit:hover:not(:disabled) {
+transform: translateY(-3px);
+box-shadow: 0 12px 36px rgba(124, 111, 247, 0.40);
+} .right .submit:active:not(:disabled) {
+transform: translateY(0);
+box-shadow: 0 4px 16px rgba(124, 111, 247, 0.25);
+} .right .submit:disabled {
+cursor: not-allowed;
+opacity: 0.6;
+} /* ===== 底部功能链接优化 ===== */
+.right .fn {
+display: flex;
+justify-content: center;
+align-items: center;
+margin-top: 2.2rem;
+/* 对齐输入框宽度 */
+width: 78%;
+flex-wrap: wrap;
+gap: 0.8rem 1.6rem;
+} .right .fn a {
+font-size: 1.4rem;
+padding: 0.4rem 0.8rem;
+color: var(--text-muted);
+text-decoration: none;
+border-radius: 0.5rem;
+transition: var(--transition);
+position: relative;
+} .right .fn a:hover {
+color: var(--primary);
+background-color: rgba(124, 111, 247, 0.06);
+} .right .fn a::after {
+content: '';
+position: absolute;
+bottom: 0.2rem;
+left: 50%;
+width: 0;
+height: 2px;
+background-color: var(--primary);
+transition: var(--transition);
+} .right .fn a:hover::after {
+left: 10%;
+width: 80%;
+} .right .fn a.back-home {
+color: var(--primary);
+font-weight: 500;
+} .right .fn a.back-home:hover {
+background-color: rgba(124, 111, 247, 0.10);
+} /* ===== 辅助类 ===== */
+.sr-only {
+position: absolute;
+width: 1px;
+height: 1px;
+padding: 0;
+margin: -1px;
+overflow: hidden;
+clip: rect(0, 0, 0, 0);
+white-space: nowrap;
+border-width: 0;
+} /* ===== 响应式增强优化 ===== */
+@media (max-width: 768px) {
+.box {
+width: 94vw;
+height: auto;
+min-height: 68vh;
+max-height: 88vh;
+border-radius: 20px;
+padding: 2rem 0;
+} .box .right {
+padding: 2rem 2rem;
+width: 100%;
+} .login-header .logo-icon {
+width: 4.8rem;
+height: 4.8rem;
+font-size: 2rem;
+} .box .right h4 {
+font-size: 2.4rem;
+} .login-header p {
+font-size: 1.3rem;
+} .input-group {
+width: 85%;
+} .box .right form .acc {
+height: 4.4rem;
+font-size: 1.5rem;
+padding-left: 2.6rem;
+} .remember-me {
+width: 85%;
+font-size: 1.3rem;
+} .right .submit {
+width: 75%;
+height: 4.4rem;
+font-size: 1.5rem;
+margin-top: 2.8rem;
+} .right .fn {
+width: 85%;
+gap: 0.6rem 1.2rem;
+} .right .fn a {
+font-size: 1.3rem;
+padding: 0.3rem 0.6rem;
+} .login-error {
+width: 85%;
+font-size: 1.3rem;
+padding: 0.8rem 1.2rem;
+}
+} @media (max-width: 480px) {
+.box {
+width: 96vw;
+min-height: 60vh;
+border-radius: 16px;
+padding: 1.2rem 0;
+} .box .right {
+padding: 1.6rem 1.6rem;
+} .login-header .logo-icon {
+width: 4.2rem;
+height: 4.2rem;
+font-size: 1.7rem;
+border-radius: 12px;
+} .box .right h4 {
+font-size: 2.1rem;
+} .login-header p {
+font-size: 1.2rem;
+} .input-group {
+width: 92%;
+margin-top: 2rem;
+} .box .right form .acc {
+height: 4rem;
+font-size: 1.4rem;
+padding-left: 2.2rem;
+} .input-group .input-icon {
+font-size: 1.4rem;
+} .remember-me {
+width: 92%;
+font-size: 1.2rem;
+margin-top: 1.6rem;
+} .right .submit {
+width: 85%;
+height: 4rem;
+font-size: 1.4rem;
+margin-top: 2.4rem;
+border-radius: 30px;
+} .right .fn {
+width: 92%;
+gap: 0.5rem 1rem;
+} .right .fn a {
+font-size: 1.2rem;
+padding: 0.2rem 0.4rem;
+} .login-error {
+width: 92%;
+font-size: 1.2rem;
+padding: 0.6rem 1rem;
+}
+} @media (max-width: 360px) {
+.login-header h4 {
+font-size: 2rem;
+} .input-group {
+width: 100%;
+} .box .right form .acc {
+font-size: 1.35rem;
+} .right .submit {
+width: 90%;
+font-size: 1.35rem;
+} .remember-me,
+.right .fn,
+.login-error {
+width: 100%;
+}
+} /* ===== 暗色模式适配（可选） ===== */
+@media (prefers-color-scheme: dark) {
+.box {
+background: rgba(30, 27, 46, 0.82);
+border-color: rgba(255, 255, 255, 0.08);
+} .box .right h4 {
+color: #A78BFA;
+} .box .right form .acc {
+color: #E8E4F0;
+border-bottom-color: rgba(167, 139, 250, 0.25);
+} .box .right form .acc::placeholder {
+color: rgba(200, 195, 220, 0.5);
+} .box .right form .acc:focus {
+border-bottom-color: #A78BFA;
+} .login-header p {
+color: rgba(200, 195, 220, 0.7);
+} .remember-me {
+color: rgba(200, 195, 220, 0.6);
+} .remember-me label:hover {
+color: #E8E4F0;
+} .right .fn a {
+color: rgba(200, 195, 220, 0.6);
+} .right .fn a:hover {
+color: #A78BFA;
+background-color: rgba(167, 139, 250, 0.10);
+} .right .fn a.back-home {
+color: #A78BFA;
+} .login-error {
+background: rgba(232, 77, 109, 0.12);
+border-color: rgba(232, 77, 109, 0.20);
+} .left-brand span {
+background: linear-gradient(135deg, #fff 60%, rgba(255,255,255,0.5));
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+background-clip: text;
+}
+}
