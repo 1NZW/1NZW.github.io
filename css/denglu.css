@@ -114,7 +114,7 @@ display: none;
 content: '';
 position: absolute;
 inset: 0;
-background-image: url(../left.webp);
+background-image: url(../photos/left.webp);
 background-size: cover;
 background-position: center;
 background-blend-mode: overlay;
