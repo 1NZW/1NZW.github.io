@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>洛林设计</title>
+    <!-- Font-Awesome 本地图标库 -->
+    <link rel="stylesheet" href="fonts/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="css/denglu.css">
+</head>
+
+<body>
+    <div class="box">
+        <!-- 左侧装饰区域 -->
+        <div class="left" aria-label="装饰背景图区域">
+            <!-- 装饰文字/标识 -->
+            <div class="left-brand">
+                <i class="fa fa-pen-fancy"></i>
+                <span>洛林·设计</span>
+            </div>
+        </div>
+
+        <!-- 右侧表单区域 -->
+        <div class="right">
+            <div class="login-header">
+                <div class="logo-icon">
+                    <i class="fa fa-pen-fancy"></i>
+                </div>
+                <h4>欢迎回来</h4>
+                <p>登录以继续你的创作之旅</p>
+            </div>
+
+            <!-- 错误提示 -->
+            <div class="login-error" id="loginError">
+                <i class="fa fa-exclamation-circle"></i>
+                <span id="errorMsg">请输入用户名</span>
+            </div>
+
+            <form id="loginForm" autocomplete="off">
+                <!-- 隐藏label提升无障碍体验 -->
+                <label class="sr-only" for="username">用户名</label>
+                <div class="input-group">
+                    <i class="fa fa-user input-icon"></i>
+                    <input class="acc" id="username" name="username" type="text" placeholder="请输入用户名" required autofocus>
+                </div>
+
+                <label class="sr-only" for="password">密码</label>
+                <div class="input-group">
+                    <i class="fa fa-lock input-icon"></i>
+                    <input class="acc" id="password" name="password" type="password" placeholder="请输入密码" required>
+                </div>
+
+                <!-- 记住我复选框模块 -->
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember" checked>
+                    <label for="remember">记住我 7 天</label>
+                </div>
+
+                <input class="submit" type="submit" value="登 录" id="loginSubmit">
+            </form>
+
+            <div class="fn">
+                <a href="./zhuce.html">注册账号</a>
+                <a href="./zhaohui.html">找回密码</a>
+                <a href="./index.html" class="back-home">← 返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const form = document.getElementById('loginForm');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const submitBtn = document.getElementById('loginSubmit');
+            const errorBox = document.getElementById('loginError');
+            const errorMsg = document.getElementById('errorMsg');
+
+            const STORAGE_KEY = 'blog_user';
+
+            // 如果已经登录，直接跳回首页
+            if (localStorage.getItem(STORAGE_KEY)) {
+                window.location.href = './home.html';
+                return;
+            }
+
+            function showError(text) {
+                errorMsg.textContent = text;
+                errorBox.classList.add('show');
+            }
+
+            function hideError() {
+                errorBox.classList.remove('show');
+            }
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                hideError();
+
+                const username = usernameInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!username) {
+                    showError('请输入用户名');
+                    usernameInput.focus();
+                    return;
+                }
+
+                if (!password) {
+                    showError('请输入密码');
+                    passwordInput.focus();
+                    return;
+                }
+
+                // 登录中状态
+                submitBtn.value = '登录中...';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.7';
+
+                // 模拟登录请求
+                setTimeout(() => {
+                    // 保存用户名到本地存储
+                    localStorage.setItem(STORAGE_KEY, username);
+
+                    // 如果有记住我，可以额外存储（示例）
+                    const remember = document.getElementById('remember');
+                    if (remember && remember.checked) {
+                        localStorage.setItem('blog_remember', 'true');
+                    } else {
+                        localStorage.removeItem('blog_remember');
+                    }
+
+                    // 跳转到首页
+                    window.location.href = './home.html?login=success';
+                }, 800);
+            });
+
+            // 输入时自动隐藏错误
+            usernameInput.addEventListener('input', hideError);
+            passwordInput.addEventListener('input', hideError);
+
+            console.log('✦ 登录页面加载完成 ✦');
+            console.log('📁 所有资源从本地加载，离线可用。');
+
+        })();
+    </script>
+</body>
+
+</html>
