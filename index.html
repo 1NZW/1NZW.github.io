@@ -1,61 +1,1256 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/index.css">
-    <title>登录界面</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>洛林 · 设计笔记</title>
+
+    <!-- 本地字体：Inter -->
+    <link rel="stylesheet" href="fonts/inter/web/inter.css">
+    <!-- 本地图标库：Font-Awesome -->
+    <link rel="stylesheet" href="fonts/font-awesome/css/font-awesome.min.css">
+
+    <style>
+        /* ===== 重置 & 基础 ===== */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --blue: #5B7FFF;
+            --purple: #A855F7;
+            --gradient-main: linear-gradient(135deg, #5B7FFF 0%, #A855F7 100%);
+            --gradient-soft: linear-gradient(135deg, rgba(91, 127, 255, 0.12) 0%, rgba(168, 85, 247, 0.12) 100%);
+            --glass-bg: rgba(255, 255, 255, 0.72);
+            --glass-border: rgba(255, 255, 255, 0.30);
+            --glass-shadow: 0 12px 40px rgba(91, 127, 255, 0.16);
+            --text-dark: #1E1B2E;
+            --text-muted: #6B6A7A;
+            --radius: 24px;
+            --radius-sm: 14px;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --transition: 0.30s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            padding: 0 20px;
+            /* ===== 背景图片（自适应） ===== */
+            background-image: url('./be.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            /* 图片加载失败时的后备渐变 */
+            background-color: #F8F7FF;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        /* 当背景图片加载失败时，显示渐变色 */
+        body:not(.bg-loaded) {
+            background: linear-gradient(135deg, #F8F7FF 0%, #E8E4FF 100%);
+        }
+        /* 图片加载成功后添加类，移除后备渐变 */
+        body.bg-loaded {
+            background-image: url('./be.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+        }
+
+        /* ===== 背景装饰（保留毛玻璃效果） ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -40%;
+            right: -20%;
+            width: 70%;
+            height: 80%;
+            background: radial-gradient(ellipse at 70% 30%, rgba(91, 127, 255, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -30%;
+            left: -20%;
+            width: 60%;
+            height: 70%;
+            background: radial-gradient(ellipse at 30% 70%, rgba(168, 85, 247, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== 容器 ===== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            padding: 20px 0 40px;
+        }
+
+        /* ===== 导航栏 ===== */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 28px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(18px) saturate(1.6);
+            -webkit-backdrop-filter: blur(18px) saturate(1.6);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            box-shadow: var(--glass-shadow);
+            margin-bottom: 40px;
+            transition: var(--transition);
+            position: relative;
+            z-index: 50;
+        }
+
+        .navbar:hover {
+            box-shadow: 0 16px 48px rgba(91, 127, 255, 0.20);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 1.30rem;
+            letter-spacing: -0.02em;
+        }
+        .nav-brand .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-main);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .nav-brand span {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            list-style: none;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 40px;
+            transition: var(--transition);
+            position: relative;
+        }
+        .nav-links a:hover {
+            color: var(--text-dark);
+            background: rgba(91, 127, 255, 0.08);
+        }
+        .nav-links a.active {
+            color: #fff;
+            background: var(--gradient-main);
+            box-shadow: 0 6px 18px rgba(91, 127, 255, 0.30);
+        }
+        .nav-links a.active:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(91, 127, 255, 0.40);
+        }
+
+        /* ===== 用户区域（登录/用户名菜单） ===== */
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            z-index: 200;
+        }
+
+        /* --- 登录按钮 --- */
+        .btn-login {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 22px;
+            border: none;
+            border-radius: 40px;
+            background: var(--gradient-main);
+            color: #fff;
+            font-family: var(--font-sans);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 6px 18px rgba(91, 127, 255, 0.26);
+            letter-spacing: 0.01em;
+            text-decoration: none;
+        }
+        .btn-login i {
+            font-size: 0.95rem;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 32px rgba(91, 127, 255, 0.36);
+        }
+        .btn-login:active {
+            transform: scale(0.97);
+        }
+
+        /* --- 用户头像 + 名称（登录后） --- */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(91, 127, 255, 0.25);
+        }
+
+        .user-menu-trigger {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 16px 6px 6px;
+            border-radius: 40px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(91, 127, 255, 0.06);
+            position: relative;
+            user-select: none;
+        }
+        .user-menu-trigger:hover {
+            border-color: rgba(91, 127, 255, 0.30);
+            box-shadow: 0 6px 20px rgba(91, 127, 255, 0.12);
+        }
+        .user-menu-trigger .user-name {
+            font-weight: 600;
+            font-size: 0.92rem;
+            color: var(--text-dark);
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .user-menu-trigger .chevron {
+            color: var(--text-muted);
+            font-size: 0.70rem;
+            transition: var(--transition);
+            margin-left: 2px;
+        }
+        .user-menu-trigger.active .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* --- 下拉菜单（修复层级：z-index 提升到最高） --- */
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            min-width: 200px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px) saturate(1.8);
+            -webkit-backdrop-filter: blur(24px) saturate(1.8);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            box-shadow: 0 20px 60px rgba(91, 127, 255, 0.25), 0 8px 24px rgba(0, 0, 0, 0.06);
+            padding: 8px 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px) scale(0.96);
+            transition: var(--transition);
+            transform-origin: top right;
+            z-index: 9999 !important;
+            pointer-events: none;
+        }
+        .user-dropdown.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .user-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: var(--text-dark);
+            text-decoration: none;
+            font-size: 0.90rem;
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            width: 100%;
+            font-family: var(--font-sans);
+            text-align: left;
+        }
+        .user-dropdown .dropdown-item:hover {
+            background: rgba(91, 127, 255, 0.10);
+            color: var(--blue);
+        }
+        .user-dropdown .dropdown-item i {
+            width: 22px;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            transition: var(--transition);
+            text-align: center;
+        }
+        .user-dropdown .dropdown-item:hover i {
+            color: var(--blue);
+        }
+        .user-dropdown .dropdown-divider {
+            height: 1px;
+            background: rgba(91, 127, 255, 0.10);
+            margin: 6px 16px;
+        }
+        .user-dropdown .dropdown-item.danger {
+            color: #E84D6D;
+        }
+        .user-dropdown .dropdown-item.danger:hover {
+            background: rgba(232, 77, 109, 0.08);
+            color: #E84D6D;
+        }
+        .user-dropdown .dropdown-item.danger:hover i {
+            color: #E84D6D;
+        }
+
+        /* ===== Hero 区域 ===== */
+        .hero {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            padding: 40px 44px 44px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(18px) saturate(1.6);
+            -webkit-backdrop-filter: blur(18px) saturate(1.6);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            box-shadow: var(--glass-shadow);
+            margin-bottom: 44px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 120%;
+            background: var(--gradient-soft);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .hero-avatar {
+            flex-shrink: 0;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            padding: 4px;
+            box-shadow: 0 12px 36px rgba(91, 127, 255, 0.24);
+            position: relative;
+            z-index: 1;
+        }
+        .hero-avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            background: #F0EEFF;
+        }
+        .hero-avatar .avatar-fallback {
+            display: none;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--gradient-main);
+            color: #fff;
+            font-size: 2.8rem;
+            font-weight: 600;
+            align-items: center;
+            justify-content: center;
+        }
+        .hero-avatar img:not([src])+.avatar-fallback,
+        .hero-avatar img[src=""]+.avatar-fallback {
+            display: flex;
+        }
+
+        .hero-content {
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-content .badge {
+            display: inline-block;
+            background: var(--gradient-soft);
+            color: var(--blue);
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 40px;
+            letter-spacing: 0.02em;
+            margin-bottom: 10px;
+            border: 1px solid rgba(91, 127, 255, 0.12);
+        }
+        .hero-content h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+        .hero-content h1 .highlight {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-content p {
+            color: var(--text-muted);
+            font-size: 1.10rem;
+            max-width: 540px;
+            line-height: 1.7;
+            margin-bottom: 18px;
+        }
+        .hero-social {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .hero-social a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(91, 127, 255, 0.07);
+            color: var(--text-muted);
+            font-size: 1.15rem;
+            transition: var(--transition);
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+        .hero-social a:hover {
+            background: var(--gradient-main);
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(91, 127, 255, 0.28);
+            border-color: transparent;
+        }
+
+        /* ===== 主布局 ===== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 32px;
+            margin-bottom: 44px;
+        }
+
+        /* ===== 文章卡片 ===== */
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.30rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+        }
+        .section-title i {
+            color: var(--blue);
+            font-size: 1.2rem;
+        }
+        .section-title .line {
+            flex: 1;
+            height: 2px;
+            background: var(--gradient-soft);
+            border-radius: 4px;
+        }
+
+        .post-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px) saturate(1.4);
+            -webkit-backdrop-filter: blur(12px) saturate(1.4);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 24px 28px;
+            margin-bottom: 18px;
+            transition: var(--transition);
+            box-shadow: 0 4px 16px rgba(91, 127, 255, 0.05);
+            cursor: default;
+        }
+        .post-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 44px rgba(91, 127, 255, 0.12);
+            border-color: rgba(91, 127, 255, 0.18);
+        }
+
+        .post-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        .post-meta .category {
+            background: var(--gradient-soft);
+            color: var(--blue);
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.72rem;
+            letter-spacing: 0.02em;
+        }
+        .post-meta .date i {
+            margin-right: 4px;
+            opacity: 0.6;
+        }
+
+        .post-card h3 {
+            font-size: 1.25rem;
+            font-weight: 650;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+        .post-card h3 a {
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: var(--transition);
+        }
+        .post-card h3 a:hover {
+            color: var(--blue);
+        }
+
+        .post-card .excerpt {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 14px;
+        }
+
+        .post-card .read-more {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--blue);
+            font-weight: 600;
+            font-size: 0.90rem;
+            transition: var(--transition);
+        }
+        .post-card .read-more i {
+            transition: var(--transition);
+            font-size: 0.80rem;
+        }
+        .post-card .read-more:hover {
+            color: var(--purple);
+            gap: 14px;
+        }
+        .post-card .read-more:hover i {
+            transform: translateX(4px);
+        }
+
+        /* ===== 侧边栏 ===== */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .sidebar-widget {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px) saturate(1.4);
+            -webkit-backdrop-filter: blur(12px) saturate(1.4);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 22px 24px;
+            box-shadow: 0 4px 16px rgba(91, 127, 255, 0.05);
+            transition: var(--transition);
+        }
+        .sidebar-widget:hover {
+            box-shadow: 0 8px 28px rgba(91, 127, 255, 0.08);
+        }
+
+        .sidebar-widget .widget-title {
+            font-size: 1.0rem;
+            font-weight: 650;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-widget .widget-title i {
+            color: var(--blue);
+            font-size: 1.0rem;
+        }
+
+        .about-text {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+        .about-text strong {
+            color: var(--text-dark);
+        }
+
+        .category-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .category-list li a {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-muted);
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(91, 127, 255, 0.06);
+            transition: var(--transition);
+            font-size: 0.92rem;
+        }
+        .category-list li:last-child a {
+            border-bottom: none;
+        }
+        .category-list li a:hover {
+            color: var(--blue);
+            padding-left: 6px;
+        }
+        .category-list li a .count {
+            background: var(--gradient-soft);
+            color: var(--blue);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0 10px;
+            border-radius: 40px;
+            line-height: 22px;
+        }
+
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag-cloud a {
+            text-decoration: none;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: rgba(91, 127, 255, 0.06);
+            padding: 4px 14px;
+            border-radius: 40px;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+        .tag-cloud a:hover {
+            background: var(--gradient-main);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(91, 127, 255, 0.24);
+            border-color: transparent;
+        }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            text-align: center;
+            padding: 28px 20px 16px;
+            border-top: 1px solid rgba(91, 127, 255, 0.08);
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: var(--radius-sm);
+        }
+        .footer .footer-links {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .footer .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.88rem;
+        }
+        .footer .footer-links a:hover {
+            color: var(--blue);
+        }
+        .footer .footer-heart {
+            color: #E84D6D;
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 992px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 28px;
+            }
+            .hero {
+                flex-direction: column;
+                text-align: center;
+                padding: 32px 24px 36px;
+            }
+            .hero-content p {
+                max-width: 100%;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .hero-social {
+                justify-content: center;
+            }
+            .hero-avatar {
+                width: 100px;
+                height: 100px;
+            }
+            .hero-content h1 {
+                font-size: 2.0rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0 12px;
+            }
+            .container {
+                padding: 12px 0 28px;
+            }
+            .navbar {
+                flex-wrap: wrap;
+                gap: 12px;
+                padding: 14px 18px;
+                border-radius: 20px;
+            }
+            .nav-links {
+                order: 3;
+                flex: 1 1 100%;
+                justify-content: center;
+                gap: 4px;
+                flex-wrap: wrap;
+            }
+            .nav-links a {
+                font-size: 0.85rem;
+                padding: 6px 14px;
+            }
+            .nav-actions {
+                margin-left: auto;
+            }
+            .btn-login {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            .btn-login span {
+                display: inline;
+            }
+            .user-menu-trigger {
+                padding: 4px 12px 4px 4px;
+            }
+            .user-menu-trigger .user-name {
+                max-width: 50px;
+                font-size: 0.82rem;
+            }
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            .hero-content h1 {
+                font-size: 1.7rem;
+            }
+            .hero-content p {
+                font-size: 0.98rem;
+            }
+            .post-card {
+                padding: 18px 20px;
+            }
+            .post-card h3 {
+                font-size: 1.1rem;
+            }
+            .sidebar-widget {
+                padding: 18px 18px;
+            }
+            .section-title {
+                font-size: 1.1rem;
+            }
+            .hero-avatar {
+                width: 80px;
+                height: 80px;
+            }
+            .user-dropdown {
+                right: -10px;
+                min-width: 170px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-brand {
+                font-size: 1.05rem;
+            }
+            .nav-brand .brand-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 0.9rem;
+            }
+            .hero {
+                padding: 24px 16px 28px;
+                border-radius: 20px;
+            }
+            .hero-content h1 {
+                font-size: 1.5rem;
+            }
+            .post-meta {
+                font-size: 0.75rem;
+                gap: 10px;
+            }
+            .footer {
+                font-size: 0.78rem;
+            }
+            .btn-login span {
+                display: none;
+            }
+            .user-menu-trigger .user-name {
+                max-width: 40px;
+                font-size: 0.78rem;
+            }
+        }
+
+        .text-gradient {
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* ===== 隐藏辅助 ===== */
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
-
-<script>
-    const submitBtn = document.querySelector('.submit');
-    const form = document.querySelector('form');
-    
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        // 切换为加载状态
-        submitBtn.value = '登录中...';
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.8';
-        
-        // 模拟接口请求2秒后恢复状态（可替换为实际登录接口逻辑）
-        setTimeout(() => {
-            submitBtn.value = 'Login';
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-            alert('登录验证通过');
-        }, 2000);
-    });
-</script>
-
 <body>
-    <div class="box">
-        <div class="left" aria-label="装饰背景图区域"></div>
-        <div class="right">
-            <h4>登 录</h4>
-            <form action="" method="POST">
-                <!-- 补充隐藏label提升无障碍体验 -->
-                <label class="sr-only" for="username">用户名</label>
-                <input class="acc" id="username" name="username" type="text" placeholder="请输入用户名" required>
-                <label class="sr-only" for="password">密码</label>
-                <input class="acc" id="password" name="password" type="password" placeholder="请输入密码" required>
-                <!-- 新增记住我复选框模块 -->
-                <div class="remember-me">
-                    <input type="checkbox" id="remember" name="remember">
-                    <label for="remember">记住我7天</label>
-                </div>
-                <input class="submit" type="submit" value="Login">
-            </form>
-            <div class="fn">
-                <a href="javascript:;">注册账号</a>
-                <a href="javascript:;">找回密码</a>
-            </div>
-        </div>
-    </div>
-</body>
 
+    <div class="container">
+
+        <!-- ==================== 导航栏 ==================== -->
+        <header class="navbar">
+            <a href="./index.html" class="nav-brand">
+                <span class="brand-icon"><i class="fa fa-pen-fancy"></i></span>
+                <span>洛林·设计</span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="./index.html" class="active">首页</a></li>
+                <li><a href="./about.html">关于</a></li>
+                <li><a href="./archive.html">归档</a></li>
+                <li><a href="./contact.html">联系</a></li>
+            </ul>
+
+            <!-- ===== 用户区域（动态渲染） ===== -->
+            <div class="nav-actions" id="navActions">
+                <!-- 由 JS 动态渲染 -->
+            </div>
+        </header>
+
+        <!-- ==================== Hero 区域 ==================== -->
+        <section class="hero">
+            <div class="hero-avatar">
+                <img src="./left.webp" alt="洛林" id="avatarImg" />
+                <div class="avatar-fallback">林</div>
+            </div>
+            <div class="hero-content">
+                <div class="badge"><i class="fa fa-sparkles"></i> 设计 · 思考 · 创造</div>
+                <h1>你好，我是 <span class="highlight">洛林(暂名)</span></h1>
+                <p>
+                    这是一个由AI协助设计完成的个人博客网站<br />
+                    点击右上角可登录(没啥用就是)目前网站内所有可交互内容均为完成，所以文案设计纯属虚构
+                </p>
+                <div class="hero-social">
+                    <a href="./social/instagram.html" aria-label="Instagram"><i class="fa fa-instagram"></i></a>
+                    <a href="./social/twitter.html" aria-label="Twitter"><i class="fa fa-twitter"></i></a>
+                    <a href="./social/github.html" aria-label="GitHub"><i class="fa fa-github"></i></a>
+                    <a href="./social/dribbble.html" aria-label="Dribbble"><i class="fa fa-dribbble"></i></a>
+                    <a href="./social/wechat.html" aria-label="微信"><i class="fa fa-weixin"></i></a>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 主内容 ==================== -->
+        <div class="main-grid">
+
+            <!-- ===== 文章列表 ===== -->
+            <main>
+                <div class="section-title">
+                    <i class="fa fa-feather-alt"></i>
+                    最新笔记
+                    <span class="line"></span>
+                </div>
+
+                <article class="post-card">
+                    <div class="post-meta">
+                        <span class="category"><i class="fa fa-tag"></i> 设计思考</span>
+                        <span class="date"><i class="fa fa-calendar-alt"></i> 2026-08-18</span>
+                        <span><i class="fa fa-clock"></i> 6 分钟</span>
+                    </div>
+                    <h3><a href="./posts/design-system-2026.html">设计系统 · 从混乱到有序</a></h3>
+                    <p class="excerpt">
+                        如何在一个快速迭代的团队中建立可持续的设计系统？分享我在过去一年中的实践与反思(真的有一年吗)，从组件库到设计 token 的治理……
+                    </p>
+                    <a href="./posts/design-system-2026.html" class="read-more">
+                        继续阅读 <i class="fa fa-arrow-right"></i>
+                    </a>
+                </article>
+
+                <article class="post-card">
+                    <div class="post-meta">
+                        <span class="category"><i class="fa fa-tag"></i> 灵感随笔</span>
+                        <span class="date"><i class="fa fa-calendar-alt"></i> 2026-08-12</span>
+                        <span><i class="fa fa-clock"></i> 4 分钟</span>
+                    </div>
+                    <h3><a href="./posts/color-emotion.html">色彩情绪 · 蓝紫色的治愈力</a></h3>
+                    <p class="excerpt">
+                        蓝色带来信任与宁静，紫色赋予想象与神秘。当蓝紫相遇，便有了温柔而坚定的力量。(我是真喜欢蓝紫色)这篇随笔记录了我对蓝紫色系的偏爱与理解……
+                    </p>
+                    <a href="./posts/color-emotion.html" class="read-more">
+                        继续阅读 <i class="fa fa-arrow-right"></i>
+                    </a>
+                </article>
+
+                <article class="post-card">
+                    <div class="post-meta">
+                        <span class="category"><i class="fa fa-tag"></i> 工具推荐</span>
+                        <span class="date"><i class="fa fa-calendar-alt"></i> 2026-08-05</span>
+                        <span><i class="fa fa-clock"></i> 3 分钟</span>
+                    </div>
+                    <h3><a href="./posts/font-toolkit.html">我的字体工具库 · 2026 版</a></h3>
+                    <p class="excerpt">
+                        从 Inter 到 JetBrains Mono，从字体搭配到可变字体实践。(AI强迫我装的这两个字体…)分享我日常使用的字体工具与资源，以及如何让文字在设计中更具呼吸感……
+                    </p>
+                    <a href="./posts/font-toolkit.html" class="read-more">
+                        继续阅读 <i class="fa fa-arrow-right"></i>
+                    </a>
+                </article>
+
+                <article class="post-card">
+                    <div class="post-meta">
+                        <span class="category"><i class="fa fa-tag"></i> 设计思考</span>
+                        <span class="date"><i class="fa fa-calendar-alt"></i> 2026-07-28</span>
+                        <span><i class="fa fa-clock"></i> 5 分钟</span>
+                    </div>
+                    <h3><a href="./posts/glassmorphism-practice.html">毛玻璃效果 · 从概念到落地</a></h3>
+                    <p class="excerpt">
+                        毛玻璃（Glassmorphism）在 2026 年依然是一种优雅的设计语言。(其实我是想要透明的效果)本文从视觉原理出发，结合代码实现，探讨如何让毛玻璃效果真正服务于用户体验……
+                    </p>
+                    <a href="./posts/glassmorphism-practice.html" class="read-more">
+                        继续阅读 <i class="fa fa-arrow-right"></i>
+                    </a>
+                </article>
+            </main>
+
+            <!-- ===== 侧边栏 ===== -->
+            <aside class="sidebar">
+
+                <div class="sidebar-widget">
+                    <div class="widget-title">
+                        <i class="fa fa-user-astronaut"></i> 关于我
+                    </div>
+                    <div class="about-text">
+                        <p>
+                            <strong>洛林(暂名)</strong> · 独立设计师(和AI)<br />
+                            专注 UI/UX 与设计系统。<br />
+                            喜欢用文字记录思考，用设计(AI)解决问题。
+                        </p>
+                        <p style="margin-top: 10px; font-size:0.85rem;">
+                            <i class="fa fa-map-pin" style="color:var(--blue);"></i> 现居神奈川
+                            &nbsp;·&nbsp; <i class="fa fa-briefcase" style="color:var(--blue);"></i> 114514年经验
+                        </p>
+                    </div>
+                </div>
+
+                <div class="sidebar-widget">
+                    <div class="widget-title">
+                        <i class="fa fa-folder-open"></i> 分类
+                    </div>
+                    <ul class="category-list">
+                        <li><a href="./category/design.html">设计思考 <span class="count">12</span></a></li>
+                        <li><a href="./category/inspiration.html">灵感随笔 <span class="count">8</span></a></li>
+                        <li><a href="./category/tools.html">工具推荐 <span class="count">6</span></a></li>
+                        <li><a href="./category/life.html">生活随记 <span class="count">4</span></a></li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-widget">
+                    <div class="widget-title">
+                        <i class="fa fa-tags"></i> 标签云
+                    </div>
+                    <div class="tag-cloud">
+                        <a href="./tag/uiux.html">UI/UX</a>
+                        <a href="./tag/designsystem.html">设计系统</a>
+                        <a href="./tag/color.html">色彩</a>
+                        <a href="./tag/typography.html">字体</a>
+                        <a href="./tag/glassmorphism.html">毛玻璃</a>
+                        <a href="./tag/frontend.html">前端</a>
+                        <a href="./tag/creative.html">创意</a>
+                        <a href="./tag/minimalism.html">极简</a>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+
+        <!-- ==================== 页脚 ==================== -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="./index.html">首页</a>
+                <a href="./about.html">关于</a>
+                <a href="./archive.html">归档</a>
+                <a href="./contact.html">联系</a>
+                <a href="./rss.xml">RSS</a>
+            </div>
+            <p>
+                &copy; 2026 洛林 · 用 <span class="footer-heart">❤</span> 设计与书写
+                <br style="display:inline;" />
+                <span style="opacity:0.5;font-size:0.82rem;">
+                    <i class="fa fa-code"></i> 本地构建 · 离线可用
+                </span>
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- ==================== 脚本 ==================== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ---- 背景图片加载检测 ----
+            (function checkBackgroundImage() {
+                const img = new Image();
+                img.onload = function() {
+                    document.body.classList.add('bg-loaded');
+                };
+                img.onerror = function() {
+                    // 加载失败，保持后备渐变
+                    document.body.classList.remove('bg-loaded');
+                };
+                img.src = './be.jpg';
+            })();
+
+            // ---- 存储键名 ----
+            const STORAGE_KEY = 'blog_user';
+
+            // ---- DOM 引用 ----
+            const navActions = document.getElementById('navActions');
+
+            // ---- 头像降级 ----
+            const avatarImg = document.getElementById('avatarImg');
+            if (avatarImg) {
+                avatarImg.addEventListener('error', function() {
+                    this.style.display = 'none';
+                    const fallback = this.parentElement.querySelector('.avatar-fallback');
+                    if (fallback) {
+                        fallback.style.display = 'flex';
+                    }
+                });
+                if (!avatarImg.src || avatarImg.src === window.location.href || avatarImg.src === '') {
+                    avatarImg.style.display = 'none';
+                    const fallback = avatarImg.parentElement.querySelector('.avatar-fallback');
+                    if (fallback) {
+                        fallback.style.display = 'flex';
+                    }
+                }
+            }
+
+            // ---- 获取当前用户 ----
+            function getCurrentUser() {
+                try {
+                    return localStorage.getItem(STORAGE_KEY) || null;
+                } catch (_) { return null; }
+            }
+
+            // ---- 设置用户 ----
+            function setUser(username) {
+                if (username && username.trim()) {
+                    localStorage.setItem(STORAGE_KEY, username.trim());
+                } else {
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+                renderUserArea();
+            }
+
+            // ---- 登出 ----
+            function logout() {
+                setUser(null);
+                closeDropdown();
+            }
+
+            // ---- 渲染用户区域 ----
+            function renderUserArea() {
+                const user = getCurrentUser();
+                if (!navActions) return;
+
+                if (user) {
+                    const initial = user.charAt(0).toUpperCase();
+                    navActions.innerHTML = `
+                        <div class="user-menu-trigger" id="userMenuTrigger">
+                            <div class="user-avatar">${initial}</div>
+                            <span class="user-name">${user}</span>
+                            <i class="fa fa-chevron-down chevron"></i>
+                        </div>
+                        <div class="user-dropdown" id="userDropdown">
+                            <button class="dropdown-item" data-action="profile">
+                                <i class="fa fa-user-circle"></i> 个人资料
+                            </button>
+                            <button class="dropdown-item" data-action="settings">
+                                <i class="fa fa-cog"></i> 设置
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item" data-action="dashboard">
+                                <i class="fa fa-dashboard"></i> 仪表盘
+                            </button>
+                            <button class="dropdown-item" data-action="help">
+                                <i class="fa fa-question-circle"></i> 帮助中心
+                            </button>
+                            <div class="dropdown-divider"></div>
+                            <button class="dropdown-item danger" data-action="logout">
+                                <i class="fa fa-sign-out-alt"></i> 登出
+                            </button>
+                        </div>
+                    `;
+
+                    const trigger = document.getElementById('userMenuTrigger');
+                    const dropdown = document.getElementById('userDropdown');
+
+                    if (trigger && dropdown) {
+                        trigger.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const isOpen = dropdown.classList.contains('show');
+                            closeDropdown();
+                            if (!isOpen) {
+                                dropdown.classList.add('show');
+                                trigger.classList.add('active');
+                            }
+                        });
+
+                        dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                            item.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const action = this.dataset.action;
+                                switch (action) {
+                                    case 'profile':
+                                        window.location.href = './profile.html';
+                                        break;
+                                    case 'settings':
+                                        window.location.href = './settings.html';
+                                        break;
+                                    case 'dashboard':
+                                        window.location.href = './dashboard.html';
+                                        break;
+                                    case 'help':
+                                        window.location.href = './help.html';
+                                        break;
+                                    case 'logout':
+                                        logout();
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                closeDropdown();
+                            });
+                        });
+
+                        document.addEventListener('click', function(e) {
+                            if (!dropdown.contains(e.target) && !trigger.contains(e.target)) {
+                                closeDropdown();
+                            }
+                        });
+                    }
+
+                } else {
+                    navActions.innerHTML = `
+                        <a href="./denglu.html" class="btn-login" id="loginBtn">
+                            <i class="fa fa-user-circle"></i>
+                            <span>登录</span>
+                        </a>
+                    `;
+                }
+            }
+
+            // ---- 关闭下拉 ----
+            function closeDropdown() {
+                const dropdown = document.getElementById('userDropdown');
+                const trigger = document.getElementById('userMenuTrigger');
+                if (dropdown) dropdown.classList.remove('show');
+                if (trigger) trigger.classList.remove('active');
+            }
+
+            // ---- 启动 ----
+            renderUserArea();
+
+            if (window.location.search.includes('login=success')) {
+                const url = new URL(window.location);
+                url.searchParams.delete('login');
+                window.history.replaceState({}, document.title, url.toString());
+            }
+
+            console.log('✦ 洛林·设计笔记 ✦ 登录状态已优化');
+            console.log('📁 所有资源从本地加载，离线可用。');
+
+        })();
+    </script>
+
+</body>
 </html>
 
 
