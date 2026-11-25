@@ -451,13 +451,55 @@ async function downloadFile(file){
   }
 }
 
-function deleteFile(file){
-  if (!confirm(`确定要删除「${file.name}」吗？\n注意：当前仅从界面移除，B2云端文件不会自动删除。`)) return;
-  state.files = state.files.filter(f => f.id !== file.id);
-  render();
-  toast('已从列表移除');
+async function deleteFile(file){
+  if (!confirm(`确定要彻底删除「${file.name}」吗？\n云端文件也会被删除！`)) return;
+  
+  toast('正在删除...');
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      body: JSON.stringify({ action: 'delete', key: file.key })
+    });
+    if (!resp.ok) throw new Error('删除失败');
+    
+    state.files = state.files.filter(f => f.key !== file.key);
+    render();
+    toast('✅ 已彻底删除');
+  } catch (e) {
+    toast('❌ 删除失败，请重试');
+  }
 }
 
+// ================= 核心逻辑：拉取云端列表 =================
+async function loadCloudFiles() {
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      body: JSON.stringify({ action: 'list' })
+    });
+    if (!resp.ok) throw new Error('获取列表失败');
+    
+    const data = await resp.json();
+    
+    // 将云端数据转换为前端需要的格式
+    state.files = data.files.map(f => ({
+      id: f.key, // 使用 key 作为唯一 id
+      key: f.key,
+      name: f.key.split('-').slice(2).join('-') || f.key, // 还原文件名（去掉前面的时间戳）
+      size: f.size,
+      addedAt: f.addedAt,
+      mime: '', // 云端不存 mime，留空即可
+      kind: getKind(f.key)
+    }));
+    
+    render();
+  } catch (e) {
+    console.error(e);
+    toast('❌ 加载云端列表失败');
+  }
+}
 // ================= 渲染 =================
 function visibleFiles(){
   let list = state.files.filter(FILTERS[state.filter].fn);
@@ -701,7 +743,7 @@ function bindEvents(){
 (function init(){
   renderNav();
   bindEvents();
-  render();
+  loadCloudFiles(); // 👈 新增这一行，一进入页面就去拉列表
 })();
 </script>
 </body>
