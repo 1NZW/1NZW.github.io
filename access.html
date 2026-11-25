@@ -383,7 +383,6 @@ function toast(msg){
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 2200);
 }
-
 // ================= 核心逻辑：上传到 B2 =================
 async function handleFiles(fileList){
   const arr = Array.from(fileList || []);
@@ -394,33 +393,46 @@ async function handleFiles(fileList){
     toast(`正在上传 ${file.name}...`);
     
     try {
+      // 1. 请求签名
       const signResp = await fetch('/api/sign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
         body: JSON.stringify({ action: 'upload', key, contentType: file.type })
       });
-      if (!signResp.ok) throw new Error('签名失败');
+      
+      if (!signResp.ok) {
+        throw new Error(`获取签名失败: HTTP ${signResp.status}`);
+      }
+      
       const { url } = await signResp.json();
 
-      await fetch(url, {
+      // 2. 直传 B2 (这里增加了对 B2 响应的强校验！)
+      const putResp = await fetch(url, {
         method: 'PUT',
         body: file,
         headers: { 'Content-Type': file.type || 'application/octet-stream' }
       });
 
+      if (!putResp.ok) {
+        const errText = await putResp.text();
+        console.error("B2 返回错误:", putResp.status, errText);
+        throw new Error(`直传B2失败: HTTP ${putResp.status}`);
+      }
+
+      // 3. 成功后才推入列表
       state.files.push({
         id: uid(), key, name: file.name, size: file.size, 
         mime: file.type, addedAt: Date.now(), kind: getKind(file.name, file.type)
       });
+      
     } catch (e) {
-      console.error(e);
-      toast(`❌ 上传 ${file.name} 失败`);
+      console.error("上传流程崩溃:", e);
+      toast(`❌ 上传 ${file.name} 失败: ${e.message}`);
     }
   }
   render();
-}
-
-// ================= 核心逻辑：下载 =================
+                                          }
+  // ================= 核心逻辑：下载 =================
 async function downloadFile(file){
   try {
     const signResp = await fetch('/api/sign', {
