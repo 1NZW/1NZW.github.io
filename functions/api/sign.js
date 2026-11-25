@@ -20,7 +20,7 @@ export async function onRequestPost({ request, env }) {
   const targetUrl = new URL(`${env.B2_ENDPOINT}/${env.B2_BUCKET}/${key}`);
   
   let method = 'GET';
-  const headers = {}; // 注意：不需要把 Content-Type 放进签名头，避免 403
+  const headers = {};
 
   if (action === 'upload') {
     method = 'PUT';
