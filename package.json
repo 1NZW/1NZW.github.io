@@ -1,0 +1,7 @@
+{
+  "name": "b2-pages-vault",
+  "version": "1.0.0",
+  "dependencies": {
+    "aws4fetch": "^1.0.19"
+  }
+}
