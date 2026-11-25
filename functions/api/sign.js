@@ -65,14 +65,17 @@ export async function onRequestPost({ request, env }) {
     return new Response("Bad action", { status: 400 });
   }
 
-  // ... 前面的代码保持不变 ...
-const targetUrl = new URL(`${env.B2_ENDPOINT}/${env.B2_BUCKET}/${key}`);
-const req = new Request(targetUrl, { method, headers });
-const signed = await aws.sign(req, { aws: { signQuery: true } });
+  const targetUrl = new URL(`${env.B2_ENDPOINT}/${env.B2_BUCKET}/${key}`);
+  const req = new Request(targetUrl, { method, headers });
+  const signed = await aws.sign(req, { aws: { signQuery: true } });
 
-// 👇 新增这两行
-let finalUrl = signed.url.replace(env.B2_ENDPOINT, 'https://files.007588.xyz');
-finalUrl = finalUrl.replace(`/${env.B2_BUCKET}`, ''); // 删掉桶名，因为 Worker 会加回来
+  let finalUrl = signed.url;
 
-return Response.json({ url: finalUrl });
+  // 👇 只有下载才走 Worker 代理加速，上传直连 B2！
+  // 并且不删除桶名，让 Worker 直接原样转发！
+  if (action === 'download') {
+    finalUrl = finalUrl.replace(env.B2_ENDPOINT, 'https://files.007588.xyz');
+  }
+
+  return Response.json({ url: finalUrl });
 }
