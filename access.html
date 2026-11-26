@@ -114,6 +114,19 @@ input{font-family:inherit;}
 .empty h3{margin:0;font-size:15px;font-weight:600;}
 .empty p{margin:0 0 10px;font-size:13px;color:var(--muted);}
 
+/* ===== 加载骨架屏 ===== */
+@keyframes shimmer{0%{background-position:-460px 0}100%{background-position:460px 0}}
+.sk-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:12px;}
+.sk-block{border-radius:6px;background:linear-gradient(90deg,#eef1f8 25%,#f7f9fd 50%,#eef1f8 75%);background-size:460px 100%;animation:shimmer 1.4s linear infinite;}
+.sk-icon{width:46px;height:46px;border-radius:12px;}
+.sk-line{height:12px;width:80%;}
+.sk-line.short{width:52%;height:10px;}
+.sk-row{display:flex;flex-direction:column;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;}
+.sk-loading-hint{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:9px;padding:6px 0 2px;font-size:12.5px;color:var(--muted);}
+.sk-spinner{width:15px;height:15px;border-radius:50%;border:2px solid #dbe1f2;border-top-color:var(--primary);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn:disabled{opacity:.65;cursor:not-allowed;}
+
 .drag-overlay{position:fixed;inset:14px;z-index:60;border-radius:22px;background:rgba(79,110,247,.07);border:2.5px dashed var(--primary);display:none;place-items:center;pointer-events:none;}
 body.dragging .drag-overlay{display:grid;}
 .drag-inner{display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--primary);font-weight:700;font-size:15px;background:#fff;padding:26px 42px;border-radius:18px;box-shadow:0 18px 40px rgba(23,29,54,.14);}
@@ -201,7 +214,7 @@ body.dragging .drag-overlay{display:grid;}
     <div class="storage-card">
       <div class="storage-head"><span>存储用量</span><span id="storagePct">0%</span></div>
       <div class="storage-bar"><i id="storageBarFill"></i></div>
-      <div class="storage-text" id="storageText">0 B / 100 MB</div>
+      <div class="storage-text" id="storageText">0 B / 10 GB</div>
     </div>
   </aside>
 
@@ -332,7 +345,7 @@ body.dragging .drag-overlay{display:grid;}
 // ==========================================
 let AUTH_KEY = sessionStorage.getItem('cv_auth_key') || '';
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 单文件上限 100MB（可按需求调整）
-const STORAGE_QUOTA = 100 * 1024 * 1024; // 展示用配额（可按你的 B2 实际额度调整）
+const STORAGE_QUOTA = 10 * 1024 * 1024 * 1024; // B2 免费额度前 10GB 永久免费
 
 function authHeaders(extra = {}) {
   return { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY, ...extra };
@@ -363,7 +376,7 @@ const KIND_STYLE = {
 
 const TEXT_EXTS = ['txt','md','json','js','ts','css','html','htm','xml','yml','yaml','py','java','c','cpp','h','sh','log','csv','svg','ini','conf','sql'];
 
-const state = { files: [], filter: 'all', query: '', view: 'grid' };
+const state = { files: [], filter: 'all', query: '', view: 'grid', loading: true, loadError: '' };
 
 const FILTERS = {
   all    : { title:'全部文件',  fn: () => true },
@@ -404,7 +417,8 @@ function formatSize(bytes){
   if (bytes < 1024) return bytes + ' B';
   if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
   if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-  return (bytes / 1073741824).toFixed(2) + ' GB';
+  const gb = bytes / 1073741824;
+  return (Number.isInteger(gb) ? gb : gb.toFixed(2)) + ' GB';
 }
 
 function formatDate(ts){
@@ -559,19 +573,26 @@ function applyCloudFiles(list){
 
 // ================= 核心逻辑：拉取云端列表 =================
 async function loadCloudFiles() {
+  state.loading = true;
+  state.loadError = '';
+  render();
   try {
     const resp = await fetch('/api/sign', {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ action: 'list' })
     });
-    if (resp.status === 401) { showLogin('访问码错误，请重新输入'); return; }
-    if (!resp.ok) throw new Error('获取列表失败: HTTP ' + resp.status);
+    if (resp.status === 401) { state.loading = false; showLogin('访问码错误，请重新输入'); return; }
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
+    state.loading = false;
     applyCloudFiles(data.files);
   } catch (e) {
     console.error(e);
-    toast('❌ 加载云端列表失败：' + e.message);
+    state.loading = false;
+    state.loadError = e.message || '网络异常';
+    render();
+    toast('❌ 加载云端列表失败：' + state.loadError);
   }
 }
 // ================= 渲染 =================
@@ -625,12 +646,46 @@ function rowHTML(f){
   </div>`;
 }
 
+function loadingState(){
+  const hint = `<div class="sk-loading-hint"><span class="sk-spinner"></span>正在从云端读取文件，请稍候…</div>`;
+  if (state.view === 'list'){
+    return hint + Array.from({length:4}, () => `
+      <div class="sk-row">
+        <div class="sk-block sk-line" style="width:55%"></div>
+        <div class="sk-block sk-line short"></div>
+      </div>`).join('');
+  }
+  return hint + Array.from({length:6}, () => `
+    <div class="sk-card">
+      <div class="sk-block sk-icon"></div>
+      <div class="sk-block sk-line"></div>
+      <div class="sk-block sk-line short"></div>
+    </div>`).join('');
+}
+
 function emptyState(){
+  const searching = !!state.query.trim();
+  if (searching){
+    return `<div class="empty">
+      <div class="empty-ico">${icon('folder')}</div>
+      <h3>没有匹配的文件</h3>
+      <p>没有找到与「${esc(state.query.trim())}」相关的文件，换个关键词试试</p>
+    </div>`;
+  }
   return `<div class="empty">
     <div class="empty-ico">${icon('folder')}</div>
-    <h3>没有找到文件</h3>
-    <p>试试其他关键词，或者上传一个新文件</p>
+    <h3>仓库是空的</h3>
+    <p>上传第一个文件，开始使用你的云端仓库</p>
     <button class="btn btn-primary" data-act="upload">${icon('upload')} 上传文件</button>
+  </div>`;
+}
+
+function errorState(){
+  return `<div class="empty">
+    <div class="empty-ico" style="color:#e5484d">${icon('clock')}</div>
+    <h3>加载失败</h3>
+    <p>无法连接云端（${esc(state.loadError)}），请检查网络后重试</p>
+    <button class="btn btn-primary" data-act="retry">${icon('upload')} 重新加载</button>
   </div>`;
 }
 
@@ -638,13 +693,26 @@ function render(){
   const list = visibleFiles();
   document.getElementById('pageTitle').textContent = FILTERS[state.filter].title;
   const size = list.reduce((s, f) => s + f.size, 0);
-  document.getElementById('pageSub').textContent = `共 ${list.length} 个文件 · ${formatSize(size)}`;
+  // 副标题根据状态给出明确反馈，避免用户误判
+  if (state.loading){
+    document.getElementById('pageSub').textContent = '正在加载云端文件…';
+  } else if (state.loadError){
+    document.getElementById('pageSub').textContent = '加载失败 · 点击重新加载';
+  } else {
+    document.getElementById('pageSub').textContent = `共 ${list.length} 个文件 · ${formatSize(size)}`;
+  }
 
   const grid = document.getElementById('fileGrid');
   grid.className = state.view === 'grid' ? 'file-grid' : 'file-list';
-  grid.innerHTML = list.length
-    ? list.map(f => state.view === 'grid' ? cardHTML(f) : rowHTML(f)).join('')
-    : emptyState();
+  if (state.loading){
+    grid.innerHTML = loadingState();
+  } else if (state.loadError){
+    grid.innerHTML = errorState();
+  } else {
+    grid.innerHTML = list.length
+      ? list.map(f => state.view === 'grid' ? cardHTML(f) : rowHTML(f)).join('')
+      : emptyState();
+  }
 
   updateNavCounts();
   updateStorage();
@@ -788,6 +856,8 @@ function bindEvents(){
   grid.addEventListener('click', e => {
     const uploadBtn = e.target.closest('[data-act="upload"]');
     if (uploadBtn){ input.click(); return; }
+    const retryBtn = e.target.closest('[data-act="retry"]');
+    if (retryBtn){ loadCloudFiles(); return; }
 
     const item = e.target.closest('[data-id]');
     if (!item) return;
@@ -825,7 +895,14 @@ function hideLogin(){ document.getElementById('loginMask').hidden = true; }
 async function doLogin(){
   const val = document.getElementById('loginKey').value.trim();
   if (!val){ document.getElementById('loginErr').textContent = '请输入访问码'; return; }
+  const btn = document.getElementById('loginBtn');
   document.getElementById('loginErr').textContent = '';
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = '验证中…';
+  state.loading = true;
+  state.loadError = '';
+  render();
   AUTH_KEY = val;
   // 用一次 list 请求验证访问码
   try {
@@ -837,17 +914,24 @@ async function doLogin(){
     const data = await resp.json();
     sessionStorage.setItem('cv_auth_key', val);
     hideLogin();
+    state.loading = false; // 验证完成，关闭加载态
     applyCloudFiles(data.files || []);
     toast('✅ 验证成功');
   } catch (e) {
     AUTH_KEY = '';
+    state.loading = false;
+    render();
     document.getElementById('loginErr').textContent = '验证失败，请检查访问码后重试';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
 // 启动
 (function init(){
   renderNav();
+  render(); // 先渲染骨架加载态，避免用户误以为没有文件
   bindEvents();
   document.getElementById('loginBtn').addEventListener('click', doLogin);
   document.getElementById('loginKey').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
