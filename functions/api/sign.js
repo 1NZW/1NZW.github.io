@@ -71,8 +71,7 @@ export async function onRequestPost({ request, env }) {
 
   let finalUrl = signed.url;
 
-  // 👇 只有下载才走 Worker 代理加速，上传直连 B2！
-  // 并且不删除桶名，让 Worker 直接原样转发！
+  // 👇 只有下载才替换域名，且使用字符串完全替换
   if (action === 'download') {
     finalUrl = finalUrl.replace(env.B2_ENDPOINT, 'https://files.007588.xyz');
   }
