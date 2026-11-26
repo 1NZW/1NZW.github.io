@@ -433,22 +433,14 @@ async function handleFiles(fileList){
   render();
                                           }
   // ================= 核心逻辑：下载 =================
-async function downloadFile(file){
-  try {
-    const signResp = await fetch('/api/sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
-      body: JSON.stringify({ action: 'download', key: file.key })
-    });
-    if (!signResp.ok) throw new Error('获取下载链接失败');
-    
-    const { url } = await signResp.json();
-    const a = document.createElement('a');
-    a.href = url; a.download = file.name; a.click();
-    toast(`开始下载：${file.name}`);
-  } catch (e) {
-    toast(`❌ 下载失败`);
-  }
+function downloadFile(file){
+  // 直接跳转到我们自己的 Pages 接口下载
+  const downloadUrl = `/api/sign?key=${encodeURIComponent(file.key)}`;
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = file.name;
+  a.click();
+  toast(`开始下载：${file.name}`);
 }
 
 async function deleteFile(file){
@@ -621,14 +613,18 @@ async function previewFile(f){
     });
     const { url } = await signResp.json();
 
-    if (f.kind === 'image'){
-      body.innerHTML = `<img class="preview-img" src="${url}" alt="${esc(f.name)}">`;
-      return;
+   if (f.kind === 'image'){
+  // 直接使用我们自己的 Pages 接口作为图片源
+  const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
+  body.innerHTML = `<img class="preview-img" src="${previewUrl}" alt="${esc(f.name)}">`;
+  return;
     }
-
+    
     const fileExt = getExt(f.name);
     if (TEXT_EXTS.includes(fileExt) || (f.mime && f.mime.startsWith('text/'))){
-      const textResp = await fetch(url);
+      const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
+      const textResp = await fetch(previewUrl);
+  // ... 后面的 text() 解析代码保持不变 ...
       const text = await textResp.text();
       const truncated = text.length > 200000;
       const displayTxt = truncated ? text.slice(0, 200000) : text;
