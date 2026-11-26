@@ -1,5 +1,47 @@
 import { AwsClient } from 'aws4fetch';
 
+// 👇 新增：专门用于处理前端的下载请求
+export async function onRequestGet({ request, env }) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key');
+  
+  if (!key) return new Response("Missing key", { status: 400 });
+
+  const aws = new AwsClient({
+    accessKeyId: env.B2_KEY_ID,
+    secretAccessKey: env.B2_APP_KEY,
+    service: 's3',
+    region: env.B2_REGION,
+  });
+
+  const targetUrl = new URL(`${env.B2_ENDPOINT}/${env.B2_BUCKET}/${key}`);
+  const req = new Request(targetUrl, { method: 'GET' });
+  const signed = await aws.sign(req, { aws: { signQuery: true } });
+
+  // Pages 去 B2 获取文件流
+  const b2Resp = await fetch(signed.url);
+  
+  if (!b2Resp.ok) {
+    return new Response("Download failed from B2", { status: b2Resp.status });
+  }
+
+  // 直接透传 B2 的文件流和响应头给浏览器
+  const newHeaders = new Headers(b2Resp.headers);
+  // 强制触发浏览器下载
+  newHeaders.set('Content-Disposition', `attachment; filename="${encodeURIComponent(key.split('-').pop())}"`);
+  
+  return new Response(b2Resp.body, {
+    status: b2Resp.status,
+    headers: newHeaders,
+  });
+}
+
+// 原有的 POST 请求（上传、列表）保持不变...
+export async function onRequestPost({ request, env }) {
+  // ... (保持你现在的代码不变) ...
+
+import { AwsClient } from 'aws4fetch';
+
 export async function onRequestPost({ request, env }) {
   if (request.headers.get("X-Auth-Key") !== env.AUTH_KEY) {
     return new Response("Unauthorized", { status: 401 });
