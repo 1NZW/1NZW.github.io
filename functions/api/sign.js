@@ -52,7 +52,9 @@ function decodeXml(s) {
 }
 function displayName(key) {
   const m = String(key).match(/^\d+-[a-z0-9]+-(.+)$/);
-  return m ? m[1] : String(key);
+  let name = m ? m[1] : String(key);
+  try { name = decodeURIComponent(name); } catch (e) { /* 未编码的旧 key，保持原样 */ }
+  return name;
 }
 
 export async function onRequestPost({ request, env }) {

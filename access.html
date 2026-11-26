@@ -468,7 +468,9 @@ async function handleFiles(fileList){
 
   for (const file of arr) {
     if (file.size > MAX_FILE_SIZE) { toast(`❌ 「${file.name}」超过 ${MAX_FILE_SIZE/1024/1024}MB 上限，已跳过`); continue; }
-    const key = `${Date.now()}-${uid()}-${file.name}`;
+    // 文件名做 URL 编码：保证 key 全为 ASCII，才能安全放进 X-File-Key 请求头
+    // （浏览器禁止 header 含中文等非 Latin-1 字符，否则 fetch 直接抛错）
+    const key = `${Date.now()}-${uid()}-${encodeURIComponent(file.name)}`;
     showProgress(`正在上传 ${file.name}…`);
 
     try {
@@ -562,7 +564,8 @@ async function deleteFile(file){
 function applyCloudFiles(list){
   state.files = (list || []).map(f => {
     const m = String(f.key).match(/^\d+-[a-z0-9]+-(.+)$/);
-    const name = m ? m[1] : f.key;
+    let name = m ? m[1] : f.key;
+    try { name = decodeURIComponent(name); } catch (e) { /* 非编码的旧文件名，保持原样 */ }
     return {
       id: f.key, key: f.key, name, size: f.size || 0,
       addedAt: f.addedAt || Date.now(), mime: '', kind: getKind(name)
