@@ -146,6 +146,25 @@ body.dragging .drag-overlay{display:grid;}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 @keyframes toastOut{to{opacity:0;transform:translateY(10px);}}
 
+/* ===== 登录验证 ===== */
+.login-mask{position:fixed;inset:0;z-index:150;background:rgba(20,25,45,.55);backdrop-filter:blur(6px);display:grid;place-items:center;padding:20px;}
+.login-mask[hidden]{display:none;}
+.login-card{width:min(380px,92vw);background:#fff;border-radius:20px;padding:30px;box-shadow:0 30px 80px rgba(20,25,45,.4);text-align:center;animation:pop .22s ease;}
+.login-logo{width:52px;height:52px;border-radius:15px;margin:0 auto 14px;background:linear-gradient(135deg,#5b7cfa,#8a5bfa);display:grid;place-items:center;color:#fff;box-shadow:0 8px 18px rgba(91,124,250,.35);}
+.login-logo svg{width:26px;height:26px;}
+.login-card h2{margin:0 0 6px;font-size:18px;}
+.login-card p{margin:0 0 18px;font-size:12.5px;color:var(--muted);}
+.login-card input{width:100%;height:44px;border:1px solid var(--border);border-radius:10px;padding:0 14px;font-size:14px;outline:none;transition:.18s;margin-bottom:12px;}
+.login-card input:focus{border-color:#c9d4f8;box-shadow:0 0 0 3px rgba(79,110,247,.12);}
+.login-card .btn{width:100%;justify-content:center;}
+.login-err{min-height:18px;color:#e5484d;font-size:12px;margin-top:8px;}
+/* ===== 上传进度 ===== */
+.progress-wrap{margin:-6px 0 18px;display:none;flex-direction:column;gap:7px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.progress-wrap.show{display:flex;}
+.progress-head{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);}
+.progress-track{height:7px;border-radius:5px;background:#e8ebf5;overflow:hidden;}
+.progress-track i{display:block;height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#5b7cfa,#8a5bfa);transition:width .2s;}
+
 @media(max-width:900px){
   .sidebar{display:none;}
   .content{padding:18px 16px 60px;}
@@ -240,9 +259,29 @@ body.dragging .drag-overlay{display:grid;}
         <button class="btn btn-ghost dz-browse">浏览文件</button>
       </div>
 
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-head"><span id="progressText">正在上传…</span><span id="progressPct">0%</span></div>
+        <div class="progress-track"><i id="progressBar"></i></div>
+      </div>
+
       <div class="file-grid" id="fileGrid"></div>
     </div>
   </main>
+</div>
+
+<div class="login-mask" id="loginMask" hidden>
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+      </svg>
+    </div>
+    <h2>访问验证</h2>
+    <p>请输入访问码以继续使用文件仓库</p>
+    <input type="password" id="loginKey" placeholder="访问码" autocomplete="current-password">
+    <button class="btn btn-primary" id="loginBtn">进入仓库</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
 </div>
 
 <div class="drag-overlay">
@@ -288,9 +327,16 @@ body.dragging .drag-overlay{display:grid;}
 
 <script>
 // ==========================================
-// ⚠️ 必改项：这里的密码必须和 CF Pages 里的 AUTH_KEY 一模一样
+// 访问码：仅保存在当前浏览器会话中，不再写入源码
+// 首次打开需要输入，验证通过后存 sessionStorage
 // ==========================================
-const AUTH_KEY = '114514'; 
+let AUTH_KEY = sessionStorage.getItem('cv_auth_key') || '';
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 单文件上限 100MB（可按需求调整）
+const STORAGE_QUOTA = 100 * 1024 * 1024; // 展示用配额（可按你的 B2 实际额度调整）
+
+function authHeaders(extra = {}) {
+  return { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY, ...extra };
+}
 
 const ICONS = {
   folder : '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>',
@@ -383,78 +429,100 @@ function toast(msg){
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 2200);
 }
-// ================= 核心逻辑：上传到 B2 =================
+// ================= 进度条 =================
+function showProgress(text){ document.getElementById('progressText').textContent=text; document.getElementById('progressBar').style.width='0%'; document.getElementById('progressPct').textContent='0%'; document.getElementById('progressWrap').classList.add('show'); }
+function setProgress(pct){ document.getElementById('progressBar').style.width=pct+'%'; document.getElementById('progressPct').textContent=pct+'%'; }
+function hideProgress(){ document.getElementById('progressWrap').classList.remove('show'); }
+
+// 用 XHR 上传以支持进度回调；url/headers 结束后可回退代理
+function xhrUpload(url, file, headers){
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url, true);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = e => { if (e.lengthComputable) setProgress(Math.round(e.loaded / e.total * 100)); };
+    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('HTTP ' + xhr.status));
+    xhr.onerror = () => reject(new Error('网络错误(CORS?)'));
+    xhr.send(file);
+  });
+}
+
+// ================= 核心逻辑：上传（直传优先，失败自动走 Worker 代理） =================
 async function handleFiles(fileList){
   const arr = Array.from(fileList || []);
   if (!arr.length) return;
-  
+
   for (const file of arr) {
+    if (file.size > MAX_FILE_SIZE) { toast(`❌ 「${file.name}」超过 ${MAX_FILE_SIZE/1024/1024}MB 上限，已跳过`); continue; }
     const key = `${Date.now()}-${uid()}-${file.name}`;
-    toast(`正在上传 ${file.name}...`);
-    
+    showProgress(`正在上传 ${file.name}…`);
+
     try {
-      // 1. 请求签名
+      // 1) 请求直传签名
       const signResp = await fetch('/api/sign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+        method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ action: 'upload', key, contentType: file.type })
       });
-      
-      if (!signResp.ok) {
-        throw new Error(`获取签名失败: HTTP ${signResp.status}`);
-      }
-      
+      if (!signResp.ok) throw new Error(`获取签名失败: HTTP ${signResp.status}`);
       const { url } = await signResp.json();
 
-      // 2. 直传 B2 (这里增加了对 B2 响应的强校验！)
-      const putResp = await fetch(url, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type || 'application/octet-stream' }
-      });
-
-      if (!putResp.ok) {
-        const errText = await putResp.text();
-        console.error("B2 返回错误:", putResp.status, errText);
-        throw new Error(`直传B2失败: HTTP ${putResp.status}`);
+      // 2) 尝试直传 B2
+      try {
+        await xhrUpload(url, file);
+      } catch (directErr) {
+        // 3) 直传失败（多半是 B2 未配 CORS）→ 回退到同源 Worker 代理上传
+        console.warn('直传失败，改用代理上传:', directErr.message);
+        toast('直传受限，正在通过代理上传…');
+        setProgress(0);
+        const proxyResp = await fetch('/api/sign', {
+          method: 'PUT',
+          headers: { 'X-Auth-Key': AUTH_KEY, 'X-File-Key': key, 'X-Content-Type': file.type || 'application/octet-stream' },
+          body: file
+        });
+        if (!proxyResp.ok) throw new Error(`代理上传失败: HTTP ${proxyResp.status} ${(await proxyResp.text()).slice(0,80)}`);
       }
 
-      // 3. 成功后才推入列表
+      // 4) 成功后才推入列表
       state.files.push({
-        id: uid(), key, name: file.name, size: file.size, 
+        id: uid(), key, name: file.name, size: file.size,
         mime: file.type, addedAt: Date.now(), kind: getKind(file.name, file.type)
       });
-      
+      toast(`✅ ${file.name} 上传成功`);
+      setProgress(100);
     } catch (e) {
-      console.error("上传流程崩溃:", e);
+      console.error("上传流程失败:", e);
       toast(`❌ 上传 ${file.name} 失败: ${e.message}`);
     }
   }
+  hideProgress();
   render();
-                                          }
+}
   // ================= 核心逻辑：下载 =================
 async function downloadFile(file){
   try {
-    toast(`准备下载...`);
-    const signResp = await fetch('/api/sign', {
+    toast(`准备下载…`);
+    // 走同源代理接口：不跳出网盘页面，也不依赖 B2 的 CORS 配置
+    const resp = await fetch('/api/sign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
-      body: JSON.stringify({ action: 'download', key: file.key })
+      headers: authHeaders(),
+      body: JSON.stringify({ action: 'get', key: file.key })
     });
-    if (!signResp.ok) throw new Error('获取链接失败');
-    
-    const { url } = await signResp.json();
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + (await resp.text()).slice(0, 80));
+
+    const blob = await resp.blob();
+    const tmpUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = tmpUrl;
     a.download = file.name;
     document.body.appendChild(a);
     a.click();
     a.remove();
+    setTimeout(() => URL.revokeObjectURL(tmpUrl), 5000);
     toast(`已开始下载：${file.name}`);
   } catch (e) {
-    toast(`❌ 下载失败`);
+    toast(`❌ 下载失败：${e.message}`);
   }
-  }
+}
 
 async function deleteFile(file){
   if (!confirm(`确定要彻底删除「${file.name}」吗？\n云端文件也会被删除！`)) return;
@@ -463,17 +531,30 @@ async function deleteFile(file){
   try {
     const resp = await fetch('/api/sign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      headers: authHeaders(),
       body: JSON.stringify({ action: 'delete', key: file.key })
     });
-    if (!resp.ok) throw new Error('删除失败');
+    if (!resp.ok) throw new Error((await resp.text()).slice(0, 100));
     
     state.files = state.files.filter(f => f.key !== file.key);
     render();
     toast('✅ 已彻底删除');
   } catch (e) {
-    toast('❌ 删除失败，请重试');
+    toast(`❌ 删除失败：${e.message}`);
   }
+}
+
+// 将云端数据转换为前端需要的格式（与后端 displayName 规则一致）
+function applyCloudFiles(list){
+  state.files = (list || []).map(f => {
+    const m = String(f.key).match(/^\d+-[a-z0-9]+-(.+)$/);
+    const name = m ? m[1] : f.key;
+    return {
+      id: f.key, key: f.key, name, size: f.size || 0,
+      addedAt: f.addedAt || Date.now(), mime: '', kind: getKind(name)
+    };
+  });
+  render();
 }
 
 // ================= 核心逻辑：拉取云端列表 =================
@@ -481,28 +562,16 @@ async function loadCloudFiles() {
   try {
     const resp = await fetch('/api/sign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      headers: authHeaders(),
       body: JSON.stringify({ action: 'list' })
     });
-    if (!resp.ok) throw new Error('获取列表失败');
-    
+    if (resp.status === 401) { showLogin('访问码错误，请重新输入'); return; }
+    if (!resp.ok) throw new Error('获取列表失败: HTTP ' + resp.status);
     const data = await resp.json();
-    
-    // 将云端数据转换为前端需要的格式
-    state.files = data.files.map(f => ({
-      id: f.key, // 使用 key 作为唯一 id
-      key: f.key,
-      name: f.key.split('-').slice(2).join('-') || f.key, // 还原文件名（去掉前面的时间戳）
-      size: f.size,
-      addedAt: f.addedAt,
-      mime: '', // 云端不存 mime，留空即可
-      kind: getKind(f.key)
-    }));
-    
-    render();
+    applyCloudFiles(data.files);
   } catch (e) {
     console.error(e);
-    toast('❌ 加载云端列表失败');
+    toast('❌ 加载云端列表失败：' + e.message);
   }
 }
 // ================= 渲染 =================
@@ -525,7 +594,7 @@ function cardHTML(f){
       <div class="file-icon" style="--bg:${st.bg};--fg:${st.fg}">${thumb}</div>
       <div class="file-actions">
         <button class="icon-btn" data-act="download" title="下载">${icon('download')}</button>
-        <button class="icon-btn" data-act="delete" title="从列表移除">${icon('trash')}</button>
+        <button class="icon-btn" data-act="delete" title="彻底删除">${icon('trash')}</button>
       </div>
     </div>
     <div>
@@ -551,7 +620,7 @@ function rowHTML(f){
     <div class="cell">${formatDate(f.addedAt)}</div>
     <div class="cell-actions">
       <button class="icon-btn" data-act="download" title="下载">${icon('download')}</button>
-      <button class="icon-btn" data-act="delete" title="从列表移除">${icon('trash')}</button>
+      <button class="icon-btn" data-act="delete" title="彻底删除">${icon('trash')}</button>
     </div>
   </div>`;
 }
@@ -592,39 +661,50 @@ function updateNavCounts(){
 
 function updateStorage(){
   const total = state.files.reduce((s, f) => s + f.size, 0);
-  const quota = 10 * 1024 * 1024 * 1024; // B2 免费额度改为 10 GB
-  const pct   = Math.min(100, (total / quota) * 100);
-  document.getElementById('storageText').textContent = `${formatSize(total)} / 10 GB`;
+  const pct   = Math.min(100, (total / STORAGE_QUOTA) * 100);
+  document.getElementById('storageText').textContent = `${formatSize(total)} / ${formatSize(STORAGE_QUOTA)}`;
   document.getElementById('storagePct').textContent  = Math.round(pct) + '%';
   document.getElementById('storageBarFill').style.width = Math.max(pct, 2) + '%';
 }
 
 // ================= 预览 =================
 async function previewFile(f){
-  // ... 前面弹窗初始化代码不变 ...
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modalBody');
+  const modalIcon = document.getElementById('modalIcon');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalSub = document.getElementById('modalSub');
+
+  // 弹窗头部信息
+  const st = KIND_STYLE[f.kind] || KIND_STYLE.other;
+  modalIcon.style.setProperty('--bg', st.bg);
+  modalIcon.style.setProperty('--fg', st.fg);
+  modalIcon.innerHTML = `<span>${(getExt(f.name) || 'file').toUpperCase().slice(0, 4)}</span>`;
+  modalTitle.textContent = f.name;
+  modalSub.textContent = `${formatSize(f.size)} · ${formatFullDate(f.addedAt)}`;
 
   body.innerHTML = `<div class="preview-loading">加载中…</div>`;
   modal.hidden = false;
 
   try {
-    // 👇 恢复请求签名
-    const signResp = await fetch('/api/sign', {
+    // 走同源代理拉取文件内容（不依赖 B2 CORS，也不会跳出页面）
+    const resp = await fetch('/api/sign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
-      body: JSON.stringify({ action: 'download', key: f.key })
+      headers: authHeaders(),
+      body: JSON.stringify({ action: 'get', key: f.key })
     });
-    if (!signResp.ok) throw new Error('获取预览链接失败');
-    const { url } = await signResp.json();
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const blob = await resp.blob();
+    const objUrl = URL.createObjectURL(blob);
 
     if (f.kind === 'image'){
-      body.innerHTML = `<img class="preview-img" src="${url}" alt="${esc(f.name)}">`;
+      body.innerHTML = `<img class="preview-img" src="${objUrl}" alt="${esc(f.name)}">`;
       return;
     }
 
     const fileExt = getExt(f.name);
     if (TEXT_EXTS.includes(fileExt) || (f.mime && f.mime.startsWith('text/'))){
-      const textResp = await fetch(url);
-      const text = await textResp.text();
+      const text = await blob.text();
       const truncated = text.length > 200000;
       const displayTxt = truncated ? text.slice(0, 200000) : text;
       body.innerHTML = `<pre class="preview-text">${esc(displayTxt)}</pre>` +
@@ -640,7 +720,7 @@ async function previewFile(f){
     document.getElementById('peDownload').onclick = () => downloadFile(f);
     
   } catch (e) {
-    body.innerHTML = `<div class="preview-empty"><p>❌ 获取预览链接失败</p></div>`;
+    body.innerHTML = `<div class="preview-empty"><p>❌ 预览失败：${esc(e.message)}</p></div>`;
   }
 }
 
@@ -654,7 +734,7 @@ function renderNav(){
     if (item.group) return `<div class="nav-label">${item.group}</div>`;
     const active = state.filter === item.key ? ' active' : '';
     return `<button class="nav-item${active}" data-filter="${item.key}">
-      ${icon(item.icon)}<span>${item.label}</span><em class="count">0</em>
+      ${icon(item.icon, 'ico')}<span>${item.label}</span><em class="count">0</em>
     </button>`;
   }).join('');
 }
@@ -734,11 +814,48 @@ function bindEvents(){
   });
 }
 
+// ================= 登录验证 =================
+function showLogin(err){
+  document.getElementById('loginMask').hidden = false;
+  document.getElementById('loginErr').textContent = err || '';
+  setTimeout(() => document.getElementById('loginKey').focus(), 50);
+}
+function hideLogin(){ document.getElementById('loginMask').hidden = true; }
+
+async function doLogin(){
+  const val = document.getElementById('loginKey').value.trim();
+  if (!val){ document.getElementById('loginErr').textContent = '请输入访问码'; return; }
+  document.getElementById('loginErr').textContent = '';
+  AUTH_KEY = val;
+  // 用一次 list 请求验证访问码
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ action: 'list' })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    sessionStorage.setItem('cv_auth_key', val);
+    hideLogin();
+    applyCloudFiles(data.files || []);
+    toast('✅ 验证成功');
+  } catch (e) {
+    AUTH_KEY = '';
+    document.getElementById('loginErr').textContent = '验证失败，请检查访问码后重试';
+  }
+}
+
 // 启动
 (function init(){
   renderNav();
   bindEvents();
-  loadCloudFiles(); // 👈 新增这一行，一进入页面就去拉列表
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginKey').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  if (AUTH_KEY) {
+    loadCloudFiles(); // 已有会话，直接拉列表
+  } else {
+    showLogin();
+  }
 })();
 </script>
 </body>
