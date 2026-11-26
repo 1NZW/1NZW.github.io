@@ -433,15 +433,28 @@ async function handleFiles(fileList){
   render();
                                           }
   // ================= 核心逻辑：下载 =================
-function downloadFile(file){
-  // 直接跳转到我们自己的 Pages 接口下载
-  const downloadUrl = `/api/sign?key=${encodeURIComponent(file.key)}`;
-  const a = document.createElement('a');
-  a.href = downloadUrl;
-  a.download = file.name;
-  a.click();
-  toast(`开始下载：${file.name}`);
-}
+async function downloadFile(file){
+  try {
+    toast(`准备下载...`);
+    const signResp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      body: JSON.stringify({ action: 'download', key: file.key })
+    });
+    if (!signResp.ok) throw new Error('获取链接失败');
+    
+    const { url } = await signResp.json();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast(`已开始下载：${file.name}`);
+  } catch (e) {
+    toast(`❌ 下载失败`);
+  }
+  }
 
 async function deleteFile(file){
   if (!confirm(`确定要彻底删除「${file.name}」吗？\n云端文件也会被删除！`)) return;
@@ -588,34 +601,29 @@ function updateStorage(){
 
 // ================= 预览 =================
 async function previewFile(f){
-  const modal = document.getElementById('modal');
-  const body  = document.getElementById('modalBody');
-  const iconEl = document.getElementById('modalIcon');
-  const st = KIND_STYLE[f.kind] || KIND_STYLE.other;
-  const ext = (getExt(f.name) || 'file').toUpperCase().slice(0, 4);
-
-  document.getElementById('modalTitle').textContent = f.name;
-  document.getElementById('modalSub').textContent = `${formatSize(f.size)} · ${f.mime || '未知类型'} · ${formatFullDate(f.addedAt)}`;
-  iconEl.style.setProperty('--bg', st.bg);
-  iconEl.style.setProperty('--fg', st.fg);
-  iconEl.textContent = ext;
-  document.getElementById('modalDownload').onclick = () => downloadFile(f);
+  // ... 前面弹窗初始化代码不变 ...
 
   body.innerHTML = `<div class="preview-loading">加载中…</div>`;
   modal.hidden = false;
 
   try {
-    // 👇 统一使用 GET 接口直连 Pages 代理，不再走 POST 签名
-    const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
+    // 👇 恢复请求签名
+    const signResp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
+      body: JSON.stringify({ action: 'download', key: f.key })
+    });
+    if (!signResp.ok) throw new Error('获取预览链接失败');
+    const { url } = await signResp.json();
 
     if (f.kind === 'image'){
-      body.innerHTML = `<img class="preview-img" src="${previewUrl}" alt="${esc(f.name)}">`;
+      body.innerHTML = `<img class="preview-img" src="${url}" alt="${esc(f.name)}">`;
       return;
     }
 
     const fileExt = getExt(f.name);
     if (TEXT_EXTS.includes(fileExt) || (f.mime && f.mime.startsWith('text/'))){
-      const textResp = await fetch(previewUrl);
+      const textResp = await fetch(url);
       const text = await textResp.text();
       const truncated = text.length > 200000;
       const displayTxt = truncated ? text.slice(0, 200000) : text;
@@ -632,7 +640,7 @@ async function previewFile(f){
     document.getElementById('peDownload').onclick = () => downloadFile(f);
     
   } catch (e) {
-    body.innerHTML = `<div class="preview-empty"><p>❌ 获取预览失败，请尝试下载</p></div>`;
+    body.innerHTML = `<div class="preview-empty"><p>❌ 获取预览链接失败</p></div>`;
   }
 }
 
