@@ -605,26 +605,17 @@ async function previewFile(f){
   modal.hidden = false;
 
   try {
-    // 获取临时签名链接用于预览
-    const signResp = await fetch('/api/sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Auth-Key': AUTH_KEY },
-      body: JSON.stringify({ action: 'download', key: f.key })
-    });
-    const { url } = await signResp.json();
+    // 👇 统一使用 GET 接口直连 Pages 代理，不再走 POST 签名
+    const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
 
-   if (f.kind === 'image'){
-  // 直接使用我们自己的 Pages 接口作为图片源
-  const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
-  body.innerHTML = `<img class="preview-img" src="${previewUrl}" alt="${esc(f.name)}">`;
-  return;
+    if (f.kind === 'image'){
+      body.innerHTML = `<img class="preview-img" src="${previewUrl}" alt="${esc(f.name)}">`;
+      return;
     }
-    
+
     const fileExt = getExt(f.name);
     if (TEXT_EXTS.includes(fileExt) || (f.mime && f.mime.startsWith('text/'))){
-      const previewUrl = `/api/sign?key=${encodeURIComponent(f.key)}`;
       const textResp = await fetch(previewUrl);
-  // ... 后面的 text() 解析代码保持不变 ...
       const text = await textResp.text();
       const truncated = text.length > 200000;
       const displayTxt = truncated ? text.slice(0, 200000) : text;
@@ -641,7 +632,7 @@ async function previewFile(f){
     document.getElementById('peDownload').onclick = () => downloadFile(f);
     
   } catch (e) {
-    body.innerHTML = `<div class="preview-empty"><p>❌ 获取预览链接失败</p></div>`;
+    body.innerHTML = `<div class="preview-empty"><p>❌ 获取预览失败，请尝试下载</p></div>`;
   }
 }
 
