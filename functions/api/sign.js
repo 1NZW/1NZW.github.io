@@ -91,19 +91,22 @@ async function hmacSign(secret, data) {
   for (const b of bytes) bin += String.fromCharCode(b);
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
-// 校验 token：签名正确 + 未过期，成功返回 payload，失败返回 null
+// 校验 token：返回 { data } 或 { error: 'expired'|'invalid' }
+// 区分"过期"与"无效"便于前端给出准确提示（过期→410，无效→403）
 async function verifyShareToken(token, secret) {
-  if (!token || typeof token !== 'string') return null;
+  const invalid = { error: 'invalid' };
+  if (!token || typeof token !== 'string') return invalid;
   const parts = token.split('.');
-  if (parts.length !== 2) return null;
+  if (parts.length !== 2) return invalid;
   const [p, sig] = parts;
   let expected;
-  try { expected = await hmacSign(secret, p); } catch { return null; }
-  if (sig.length !== expected.length || sig !== expected) return null;
+  try { expected = await hmacSign(secret, p); } catch { return invalid; }
+  if (sig.length !== expected.length || sig !== expected) return invalid;
   let data;
-  try { data = JSON.parse(b64urlDecode(p)); } catch { return null; }
-  if (!data || !data.k || !data.e || Date.now() > Number(data.e)) return null;
-  return data;
+  try { data = JSON.parse(b64urlDecode(p)); } catch { return invalid; }
+  if (!data || !data.k || !data.e) return invalid;
+  if (Date.now() > Number(data.e)) return { error: 'expired', data };
+  return { data };
 }
 
 export async function onRequestPost({ request, env }) {
@@ -242,21 +245,25 @@ export async function onRequestPost({ request, env }) {
     const sig = await hmacSign(shareSecret(env), payloadB64);
     const token = payloadB64 + '.' + sig;
     const origin = new URL(request.url).origin;
-    const shareUrl = origin + '/share.html?t=' + encodeURIComponent(token);
+    const shareUrl = origin + '/share?t=' + encodeURIComponent(token);
     return json({ token, url: shareUrl, expiresAt: exp, name, size, ttl });
   }
 
   // ---------- 5b. 查询分享信息（公开，凭 token） ----------
   if (action === 'share_info') {
-    const data = await verifyShareToken(payload.token, shareSecret(env));
-    if (!data) return json({ error: '链接无效或已过期' }, 403);
+    const result = await verifyShareToken(payload.token, shareSecret(env));
+    if (result.error === 'expired') return json({ error: '链接已过期' }, 410);
+    if (result.error) return json({ error: '链接无效或已被篡改' }, 403);
+    const data = result.data;
     return json({ name: data.n || displayName(data.k), size: Number(data.s) || 0, expiresAt: Number(data.e) });
   }
 
   // ---------- 5c. 分享下载（公开，凭 token 代理读取文件） ----------
   if (action === 'share_download') {
-    const data = await verifyShareToken(payload.token, shareSecret(env));
-    if (!data) return text('链接无效或已过期', 403);
+    const result = await verifyShareToken(payload.token, shareSecret(env));
+    if (result.error === 'expired') return text('链接已过期', 410);
+    if (result.error) return text('链接无效或已被篡改', 403);
+    const data = result.data;
     try {
       const signed = await aws.sign(new Request(objectUrl(env, data.k), { method: 'GET' }));
       const resp = await fetch(signed.url, { headers: signed.headers });
