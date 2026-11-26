@@ -100,7 +100,7 @@ input{font-family:inherit;}
 .dot{width:3px;height:3px;border-radius:50%;background:#ccd2e2;flex:0 0 3px;}
 
 .file-list{display:flex;flex-direction:column;gap:8px;}
-.file-row{display:grid;grid-template-columns:minmax(0,1fr) 100px 118px 78px;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 16px;cursor:pointer;transition:.15s;animation:fadeUp .25s ease both;}
+.file-row{display:grid;grid-template-columns:minmax(0,1fr) 100px 118px 94px;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:9px 16px;cursor:pointer;transition:.15s;animation:fadeUp .25s ease both;}
 .file-row:hover{border-color:#d9e0f2;box-shadow:0 6px 16px rgba(23,29,54,.07);}
 .cell-name{display:flex;align-items:center;gap:11px;min-width:0;}
 .cell-name span{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -153,6 +153,30 @@ body.dragging .drag-overlay{display:grid;}
 .preview-empty p{margin:0 0 4px;font-size:13px;}
 .preview-loading{padding:50px;text-align:center;color:var(--muted);font-size:13px;}
 
+/* ===== 分享链接弹窗 ===== */
+.share-panel{width:min(480px,94vw);}
+.share-icon-lg svg{width:22px;height:22px;}
+.share-section{margin-bottom:14px;}
+.share-label{font-size:12px;font-weight:600;color:#6b7290;margin-bottom:10px;}
+.share-ttls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.ttl-btn{height:38px;border-radius:10px;background:#f2f4fa;color:#5a6076;font-size:12.5px;font-weight:600;transition:.16s;border:1.5px solid transparent;}
+.ttl-btn:hover{background:#eaeefb;}
+.ttl-btn.active{background:var(--primary-soft);color:var(--primary);border-color:#c9d4f8;}
+.share-note{font-size:12px;line-height:1.7;color:var(--muted);background:#f7f9ff;border:1px solid #eef1fa;border-radius:10px;padding:10px 12px;margin:0 0 16px;}
+.share-note b{color:var(--primary);}
+.share-create-btn{width:100%;justify-content:center;height:42px;}
+.share-create-btn svg{width:16px;height:16px;}
+.share-result{margin-top:18px;border-top:1px solid var(--border);padding-top:16px;animation:fadeUp .25s ease;}
+.share-result[hidden]{display:none;}
+.share-ok-title{display:flex;align-items:center;gap:7px;color:#1a9d6b;font-size:13px;font-weight:600;margin-bottom:10px;}
+.share-ok-title .ico{width:16px;height:16px;}
+.share-linkbox{display:flex;gap:8px;}
+.share-linkbox input{flex:1;min-width:0;height:40px;border:1px solid var(--border);border-radius:10px;padding:0 12px;font-size:12px;color:var(--text);background:#fafbfe;outline:none;}
+.share-linkbox input:focus{border-color:#c9d4f8;}
+.share-linkbox .btn{height:40px;flex:0 0 auto;}
+.share-expire{font-size:11.5px;color:var(--muted);margin:10px 0 0;display:flex;align-items:center;gap:5px;}
+.share-expire .ico{width:13px;height:13px;}
+
 #toasts{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center;}
 .toast{background:#1f2637;color:#fff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:10px;box-shadow:0 10px 28px rgba(20,25,45,.28);animation:toastIn .24s ease both;}
 .toast.out{animation:toastOut .28s ease both;}
@@ -196,7 +220,7 @@ body.dragging .drag-overlay{display:grid;}
   .topbar{padding:0 16px;height:60px;flex:0 0 60px;gap:10px;}
   .search-box kbd{display:none;}
   .topbar-actions .segmented{display:none;} /* 手机固定网格视图，切换无意义 */
-  .file-row{grid-template-columns:minmax(0,1fr) 76px;}
+  .file-row{grid-template-columns:minmax(0,1fr) 92px;}
   .file-row .cell:nth-child(2),.file-row .cell:nth-child(3){display:none;}
   .file-actions,.cell-actions{opacity:1;} /* 兜底：部分设备 hover 媒体查询不生效 */
 
@@ -437,6 +461,48 @@ body.dragging .drag-overlay{display:grid;}
   </div>
 </div>
 
+<!-- 分享链接弹窗 -->
+<div class="modal" id="shareModal" hidden>
+  <div class="modal-backdrop" data-share-close></div>
+  <div class="modal-panel share-panel">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <div class="file-icon" id="shareIcon"></div>
+        <div style="min-width:0">
+          <h3 id="shareTitle">生成临时分享链接</h3>
+          <p id="shareSub"></p>
+        </div>
+      </div>
+      <div class="modal-head-actions">
+        <button class="icon-btn" data-share-close title="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="modal-body">
+      <div class="share-section">
+        <div class="share-label">有效期</div>
+        <div class="share-ttls" id="shareTtls">
+          <button class="ttl-btn" data-ttl="3600">1 小时</button>
+          <button class="ttl-btn active" data-ttl="86400">1 天</button>
+          <button class="ttl-btn" data-ttl="604800">7 天</button>
+          <button class="ttl-btn" data-ttl="2592000">30 天</button>
+        </div>
+      </div>
+      <p class="share-note">任何拿到链接的人都能下载这个文件，<b>无需访问码</b>。到期后链接自动失效。</p>
+      <button class="btn btn-primary share-create-btn" id="shareCreateBtn">生成链接</button>
+      <div class="share-result" id="shareResult" hidden>
+        <div class="share-ok-title">${icon('check', 'ico')} 链接已生成</div>
+        <div class="share-linkbox">
+          <input type="text" id="shareUrl" readonly>
+          <button class="btn btn-primary" id="shareCopyBtn">复制</button>
+        </div>
+        <p class="share-expire" id="shareExpire"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 <input type="file" id="fileInput" multiple hidden>
 
@@ -463,6 +529,10 @@ const ICONS = {
   download:'<path d="M12 4v12m0 0 5-5m-5 5-5-5"/><path d="M4 18v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/>',
   trash  : '<path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
   upload : '<path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+  share  : '<circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.3M8.3 13.2l7.4 4.3"/>',
+  link   : '<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.2 1.2"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.2-1.2"/>',
+  clock2 : '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/>',
+  check  : '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
 };
 function icon(name, cls = ''){
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name] || ''}</svg>`;
@@ -662,6 +732,107 @@ async function deleteFile(file){
   }
 }
 
+// ================= 核心逻辑：临时分享链接 =================
+let shareTTL = 86400;          // 当前选中的有效期（秒）
+let shareTarget = null;        // 当前分享的文件
+let shareExpireTimer = null;
+
+function openShare(file){
+  shareTarget = file;
+  shareTTL = 86400;
+  const modal = document.getElementById('shareModal');
+  const st = KIND_STYLE[file.kind] || KIND_STYLE.other;
+  const iconEl = document.getElementById('shareIcon');
+  iconEl.style.setProperty('--bg', st.bg);
+  iconEl.style.setProperty('--fg', st.fg);
+  iconEl.innerHTML = `<span>${(getExt(file.name) || 'file').toUpperCase().slice(0, 4)}</span>`;
+  document.getElementById('shareTitle').textContent = file.name;
+  document.getElementById('shareSub').textContent = `${formatSize(file.size)} · 生成临时下载链接`;
+  // 重置有效期选中态
+  document.querySelectorAll('.ttl-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.ttl) === shareTTL));
+  // 重置结果区
+  document.getElementById('shareResult').hidden = true;
+  document.getElementById('shareUrl').value = '';
+  const btn = document.getElementById('shareCreateBtn');
+  btn.disabled = false;
+  btn.innerHTML = `${icon('share')} 生成链接`;
+  modal.hidden = false;
+}
+
+function closeShare(){
+  document.getElementById('shareModal').hidden = true;
+  if (shareExpireTimer){ clearInterval(shareExpireTimer); shareExpireTimer = null; }
+}
+
+function fmtCountdown(ms){
+  if (ms <= 0) return '已过期';
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (d > 0) return `${d} 天 ${h} 小时`;
+  if (h > 0) return `${h} 小时 ${m} 分`;
+  if (m > 0) return `${m} 分 ${sec} 秒`;
+  return `${sec} 秒`;
+}
+
+async function createShare(){
+  if (!shareTarget) return;
+  const btn = document.getElementById('shareCreateBtn');
+  btn.disabled = true;
+  btn.textContent = '生成中…';
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        action: 'share_create',
+        key: shareTarget.key,
+        name: shareTarget.name,
+        size: shareTarget.size,
+        ttl: shareTTL,
+      })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + (await resp.text()).slice(0, 80));
+    const data = await resp.json();
+    document.getElementById('shareUrl').value = data.url;
+    const result = document.getElementById('shareResult');
+    result.hidden = false;
+
+    const expireEl = document.getElementById('shareExpire');
+    if (shareExpireTimer){ clearInterval(shareExpireTimer); shareExpireTimer = null; }
+    const tick = () => {
+      const left = data.expiresAt - Date.now();
+      expireEl.innerHTML = `${icon('clock2', 'ico')} 有效期剩余 <b>${fmtCountdown(left)}</b>${left <= 0 ? ' · 链接已失效' : ''}`;
+      if (left <= 0 && shareExpireTimer){ clearInterval(shareExpireTimer); shareExpireTimer = null; }
+    };
+    tick();
+    shareExpireTimer = setInterval(tick, 1000);
+    btn.disabled = false;
+    btn.innerHTML = `${icon('check', 'ico')} 重新生成`;
+    toast('✅ 分享链接已生成');
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = `${icon('share')} 生成链接`;
+    toast(`❌ 生成失败：${e.message}`);
+  }
+}
+
+async function copyShare(){
+  const input = document.getElementById('shareUrl');
+  const val = input.value;
+  if (!val) return;
+  try {
+    await navigator.clipboard.writeText(val);
+  } catch {
+    input.select();
+    document.execCommand('copy');
+    input.setSelectionRange(0, 0);
+  }
+  toast('✅ 链接已复制，发给对方即可下载');
+}
+
 // 将云端数据转换为前端需要的格式（与后端 displayName 规则一致）
 function applyCloudFiles(list){
   state.files = (list || []).map(f => {
@@ -719,6 +890,7 @@ function cardHTML(f){
     <div class="file-top">
       <div class="file-icon" style="--bg:${st.bg};--fg:${st.fg}">${thumb}</div>
       <div class="file-actions">
+        <button class="icon-btn" data-act="share" title="生成分享链接">${icon('share')}</button>
         <button class="icon-btn" data-act="download" title="下载">${icon('download')}</button>
         <button class="icon-btn" data-act="delete" title="彻底删除">${icon('trash')}</button>
       </div>
@@ -745,6 +917,7 @@ function rowHTML(f){
     <div class="cell">${formatSize(f.size)}</div>
     <div class="cell">${formatDate(f.addedAt)}</div>
     <div class="cell-actions">
+      <button class="icon-btn" data-act="share" title="生成分享链接">${icon('share')}</button>
       <button class="icon-btn" data-act="download" title="下载">${icon('download')}</button>
       <button class="icon-btn" data-act="delete" title="彻底删除">${icon('trash')}</button>
     </div>
@@ -1004,6 +1177,7 @@ function bindEvents(){
       e.stopPropagation();
       if (actBtn.dataset.act === 'download') downloadFile(file);
       if (actBtn.dataset.act === 'delete') deleteFile(file);
+      if (actBtn.dataset.act === 'share') openShare(file);
       return;
     }
     previewFile(file);
@@ -1013,9 +1187,23 @@ function bindEvents(){
     if (e.target.closest('[data-close]')) closeModal();
   });
 
+  // 分享弹窗事件
+  const shareModal = document.getElementById('shareModal');
+  shareModal.addEventListener('click', e => {
+    if (e.target.closest('[data-share-close]')) closeShare();
+  });
+  document.getElementById('shareTtls').addEventListener('click', e => {
+    const b = e.target.closest('.ttl-btn');
+    if (!b) return;
+    shareTTL = Number(b.dataset.ttl);
+    document.querySelectorAll('.ttl-btn').forEach(x => x.classList.toggle('active', x === b));
+  });
+  document.getElementById('shareCreateBtn').addEventListener('click', createShare);
+  document.getElementById('shareCopyBtn').addEventListener('click', copyShare);
+
   window.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); search.focus(); search.select(); }
-    if (e.key === 'Escape'){ closeModal(); document.body.classList.remove('dragging'); }
+    if (e.key === 'Escape'){ closeModal(); closeShare(); document.body.classList.remove('dragging'); }
   });
 }
 
