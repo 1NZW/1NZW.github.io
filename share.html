@@ -152,6 +152,7 @@ function renderFile(){
       <h1 class="fname" title="${esc(info.name)}">${esc(info.name)}</h1>
       <p class="fmeta">文件大小 <b>${fmtSize(info.size)}</b></p>
       <div class="expire-box">${icon('clock')} 有效期剩余 <b id="countdown">--</b></div>
+      ${info.remainingDownloads !== null ? `<div class="expire-box" style="margin-top:8px">${icon('download')} 剩余可下载 <b id="remainCount">${info.remainingDownloads}</b> 次</div>` : ''}
     </div>
     <div class="card-body">
       <button class="download-btn" id="dlBtn">${icon('download')} 下载文件</button>
@@ -191,9 +192,14 @@ async function loadInfo(){
     });
     const data = await resp.json().catch(()=>({}));
     if (!resp.ok || data.error){
-      const expired = resp.status === 410 || /过期/.test(data.error||'');
-      content.innerHTML = stateHTML('err', expired?'链接已过期':'链接无效或已被篡改',
-        (data.error || '无法验证此分享链接') + '<br>如需下载，请联系分享者重新生成链接。');
+      const msg = data.error || '无法验证此分享链接';
+      let title = '链接无效或已被篡改';
+      if (resp.status === 410 || /过期/.test(msg)) title = '链接已过期';
+      else if (/撤销/.test(msg)) title = '链接已被撤销';
+      else if (/次数/.test(msg)) title = '下载次数已用完';
+      else if (/删除/.test(msg)) title = '文件已被删除';
+      content.innerHTML = stateHTML('err', title,
+        msg + '<br>如需下载，请联系分享者重新生成链接。');
       return;
     }
     info = data;
@@ -219,6 +225,17 @@ async function download(){
     });
     if (!resp.ok){
       const msg = (await resp.text()).slice(0,120);
+      // 次数用尽/撤销/删除 → 切换到状态页，按钮置灰
+      if (/次数|撤销|删除|过期/.test(msg)){
+        let title = '链接已失效';
+        if (/次数/.test(msg)) title = '下载次数已用完';
+        else if (/撤销/.test(msg)) title = '链接已被撤销';
+        else if (/删除/.test(msg)) title = '文件已被删除';
+        else if (/过期/.test(msg)) title = '链接已过期';
+        if (timer){ clearInterval(timer); timer = null; }
+        content.innerHTML = stateHTML('err', title, msg + '<br>如需下载，请联系分享者重新生成链接。');
+        return;
+      }
       throw new Error(msg || ('HTTP '+resp.status));
     }
     fill.style.width = '80%';
@@ -232,6 +249,21 @@ async function download(){
     a.click();
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 8000);
+    // 有限次：更新剩余次数显示，用完则禁用按钮
+    if (info.remainingDownloads !== null){
+      info.remainingDownloads = Math.max(0, info.remainingDownloads - 1);
+      const rc = document.getElementById('remainCount');
+      if (rc) rc.textContent = info.remainingDownloads;
+      if (info.remainingDownloads <= 0){
+        btn.disabled = true;
+        btn.innerHTML = '下载次数已用完';
+        setTimeout(()=>{
+          if (timer){ clearInterval(timer); timer = null; }
+          content.innerHTML = stateHTML('err','下载次数已用完','这个分享链接的下载次数已用完。<br>如需继续下载，请联系分享者重新生成链接。');
+        }, 1200);
+        return;
+      }
+    }
     btn.disabled = false;
     btn.innerHTML = icon('download') + ' 再次下载';
     setTimeout(()=>{ prog.classList.remove('show'); fill.style.width='0'; }, 800);

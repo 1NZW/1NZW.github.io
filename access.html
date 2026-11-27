@@ -177,6 +177,33 @@ body.dragging .drag-overlay{display:grid;}
 .share-expire{font-size:11.5px;color:var(--muted);margin:10px 0 0;display:flex;align-items:center;gap:5px;}
 .share-expire .ico{width:13px;height:13px;}
 
+/* ===== 我的分享管理弹窗 ===== */
+.manage-panel{width:min(620px,94vw);max-height:82vh;display:flex;flex-direction:column;}
+.manage-panel .modal-body{overflow-y:auto;padding-bottom:8px;}
+.manage-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.manage-hint{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.manage-refresh{height:32px;padding:0 12px;border-radius:8px;background:#f2f4fa;color:#5a6076;font-size:12px;font-weight:600;transition:.16s;flex:0 0 auto;}
+.manage-refresh:hover{background:#eaeefb;}
+.manage-empty{text-align:center;padding:44px 20px;color:var(--muted);}
+.manage-empty svg{width:40px;height:40px;color:#b8c0d8;margin-bottom:10px;}
+.manage-empty p{margin:0;font-size:13px;line-height:1.7;}
+.share-item{display:flex;align-items:center;gap:11px;padding:12px 2px;border-top:1px solid var(--border);}
+.share-item:first-child{border-top:none;}
+.si-info{flex:1;min-width:0;}
+.si-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;}
+.si-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted);}
+.si-status{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:700;}
+.si-status.active{background:#eaf7f0;color:#1a9d6b;}
+.si-status.revoked{background:#fdeced;color:#e5484d;}
+.si-status.expired,.si-status.exhausted{background:#f2f4fa;color:#8a90a6;}
+.si-actions{display:flex;gap:6px;flex:0 0 auto;}
+.si-btn{height:32px;padding:0 11px;border-radius:8px;background:#f2f4fa;color:#5a6076;font-size:12px;font-weight:600;transition:.16s;}
+.si-btn:hover{background:#eaeefb;}
+.si-btn.danger{background:#fdeced;color:#e5484d;}
+.si-btn.danger:hover{background:#fbdadd;}
+.si-btn:disabled{opacity:.5;cursor:not-allowed;}
+@media(max-width:560px){ #manageSharesBtn span{display:none;} .share-item{flex-wrap:wrap;} .si-actions{width:100%;justify-content:flex-end;} }
+
 #toasts{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center;}
 .toast{background:#1f2637;color:#fff;font-size:13px;font-weight:500;padding:10px 18px;border-radius:10px;box-shadow:0 10px 28px rgba(20,25,45,.28);animation:toastIn .24s ease both;}
 .toast.out{animation:toastOut .28s ease both;}
@@ -346,6 +373,13 @@ body.dragging .drag-overlay{display:grid;}
             </svg>
           </button>
         </div>
+        <button class="btn btn-ghost" id="manageSharesBtn" title="我创建的分享链接">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/>
+            <path d="m8.3 10.8 7.4-4.3M8.3 13.2l7.4 4.3"/>
+          </svg>
+          <span>分享管理</span>
+        </button>
         <button class="btn btn-primary" id="uploadBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
@@ -489,10 +523,19 @@ body.dragging .drag-overlay{display:grid;}
           <button class="ttl-btn" data-ttl="2592000">30 天</button>
         </div>
       </div>
-      <p class="share-note">任何拿到链接的人都能下载这个文件，<b>无需访问码</b>。到期后链接自动失效。</p>
+      <div class="share-section">
+        <div class="share-label">下载次数 <span style="font-weight:400;color:#9aa1b8">（超过后自动失效，0 为不限）</span></div>
+        <div class="share-ttls" id="shareLimits">
+          <button class="limit-btn ttl-btn active" data-limit="0">不限</button>
+          <button class="limit-btn ttl-btn" data-limit="1">1 次</button>
+          <button class="limit-btn ttl-btn" data-limit="5">5 次</button>
+          <button class="limit-btn ttl-btn" data-limit="10">10 次</button>
+        </div>
+      </div>
+      <p class="share-note">任何拿到链接的人都能下载这个文件，<b>无需访问码</b>。到期或用完次数后自动失效，也可在<b>分享管理</b>里随时撤销。</p>
       <button class="btn btn-primary share-create-btn" id="shareCreateBtn">生成链接</button>
       <div class="share-result" id="shareResult" hidden>
-        <div class="share-ok-title">${icon('check', 'ico')} 链接已生成</div>
+        <div class="share-ok-title">✓ 链接已生成</div>
         <div class="share-linkbox">
           <input type="text" id="shareUrl" readonly>
           <button class="btn btn-primary" id="shareCopyBtn">复制</button>
@@ -500,6 +543,27 @@ body.dragging .drag-overlay{display:grid;}
         <p class="share-expire" id="shareExpire"></p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 分享管理弹窗 -->
+<div class="modal" id="manageModal" hidden>
+  <div class="modal-backdrop" data-manage-close></div>
+  <div class="modal-panel manage-panel">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <div style="min-width:0">
+          <h3>我创建的分享链接</h3>
+          <p>查看有效期、下载次数，随时撤销</p>
+        </div>
+      </div>
+      <div class="modal-head-actions">
+        <button class="icon-btn" data-manage-close title="关闭">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="modal-body" id="manageBody"></div>
   </div>
 </div>
 
@@ -734,12 +798,14 @@ async function deleteFile(file){
 
 // ================= 核心逻辑：临时分享链接 =================
 let shareTTL = 86400;          // 当前选中的有效期（秒）
+let shareLimit = 0;            // 当前选中的下载次数上限（0=不限）
 let shareTarget = null;        // 当前分享的文件
 let shareExpireTimer = null;
 
 function openShare(file){
   shareTarget = file;
   shareTTL = 86400;
+  shareLimit = 0;
   const modal = document.getElementById('shareModal');
   const st = KIND_STYLE[file.kind] || KIND_STYLE.other;
   const iconEl = document.getElementById('shareIcon');
@@ -748,8 +814,9 @@ function openShare(file){
   iconEl.innerHTML = `<span>${(getExt(file.name) || 'file').toUpperCase().slice(0, 4)}</span>`;
   document.getElementById('shareTitle').textContent = file.name;
   document.getElementById('shareSub').textContent = `${formatSize(file.size)} · 生成临时下载链接`;
-  // 重置有效期选中态
-  document.querySelectorAll('.ttl-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.ttl) === shareTTL));
+  // 重置有效期与次数选中态
+  document.querySelectorAll('#shareTtls .ttl-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.ttl) === shareTTL));
+  document.querySelectorAll('#shareLimits .limit-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.limit) === shareLimit));
   // 重置结果区
   document.getElementById('shareResult').hidden = true;
   document.getElementById('shareUrl').value = '';
@@ -792,11 +859,17 @@ async function createShare(){
         name: shareTarget.name,
         size: shareTarget.size,
         ttl: shareTTL,
+        maxDownloads: shareLimit,
       })
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + (await resp.text()).slice(0, 80));
     const data = await resp.json();
     document.getElementById('shareUrl').value = data.url;
+    // 未绑定 KV 时提示功能降级
+    const okTitle = document.querySelector('#shareResult .share-ok-title');
+    if (okTitle) okTitle.textContent = data.persisted
+      ? '✓ 链接已生成（可在分享管理中撤销/限次）'
+      : '✓ 链接已生成';
     const result = document.getElementById('shareResult');
     result.hidden = false;
 
@@ -831,6 +904,119 @@ async function copyShare(){
     input.setSelectionRange(0, 0);
   }
   toast('✅ 链接已复制，发给对方即可下载');
+}
+
+// ================= 核心逻辑：分享管理（撤销 / 下载次数 / 状态） =================
+const SHARE_STATUS = {
+  active:    { label: '生效中', cls: 'active' },
+  revoked:   { label: '已撤销', cls: 'revoked' },
+  expired:   { label: '已过期', cls: 'expired' },
+  exhausted: { label: '次数用尽', cls: 'exhausted' },
+};
+
+function openManage(){
+  const modal = document.getElementById('manageModal');
+  modal.hidden = false;
+  loadShares();
+}
+function closeManage(){ document.getElementById('manageModal').hidden = true; }
+
+function sharesPlaceholder(html){
+  document.getElementById('manageBody').innerHTML = html;
+}
+
+async function loadShares(){
+  sharesPlaceholder('<div class="manage-empty"><p>正在加载分享列表…</p></div>');
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ action: 'share_list' })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + (await resp.text()).slice(0, 100));
+    const data = await resp.json();
+    renderShares(data);
+  } catch (e) {
+    sharesPlaceholder(`<div class="manage-empty"><p>加载失败：${esc(e.message)}</p></div>`);
+  }
+}
+
+function renderShares(data){
+  const body = document.getElementById('manageBody');
+  if (!data.supported){
+    body.innerHTML = `<div class="manage-bar"><span class="manage-hint">服务端未绑定 KV，撤销/限次功能不可用。请在 Cloudflare Pages 绑定一个 KV 命名空间（变量名 SHARE_KV）。</span></div>`;
+    return;
+  }
+  const shares = data.shares || [];
+  if (!shares.length){
+    body.innerHTML = `<div class="manage-bar"><span class="manage-hint">共 0 条分享</span><button class="manage-refresh" id="manageRefresh">刷新</button></div>
+      <div class="manage-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.3M8.3 13.2l7.4 4.3"/></svg>
+        <p>还没有创建过分享链接。<br>在文件卡片上点分享图标即可生成。</p>
+      </div>`;
+    document.getElementById('manageRefresh').addEventListener('click', loadShares);
+    return;
+  }
+
+  const activeCount = shares.filter(s => s.status === 'active').length;
+  const items = shares.map(s => {
+    const st = SHARE_STATUS[s.status] || SHARE_STATUS.expired;
+    const limit = s.maxDownloads > 0 ? `${s.downloads}/${s.maxDownloads} 次` : '不限次数';
+    const expire = new Date(s.expiresAt);
+    const expireStr = expire.toLocaleString('zh-CN', { hour12: false });
+    const canRevoke = s.status === 'active';
+    return `<div class="share-item">
+      <div class="si-info">
+        <div class="si-name" title="${esc(s.name)}">${esc(s.name)}</div>
+        <div class="si-meta">
+          <span class="si-status ${st.cls}">${st.label}</span>
+          <span>${formatSize(s.size)}</span>
+          <span>${limit}</span>
+          <span>至 ${expireStr}</span>
+        </div>
+      </div>
+      <div class="si-actions">
+        <button class="si-btn" data-copy-token="${esc(s.token)}">复制</button>
+        <button class="si-btn danger" data-revoke-token="${esc(s.token)}" ${canRevoke ? '' : 'disabled'}>撤销</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `<div class="manage-bar">
+      <span class="manage-hint">共 ${shares.length} 条 · ${activeCount} 条生效中</span>
+      <button class="manage-refresh" id="manageRefresh">刷新</button>
+    </div>${items}`;
+
+  document.getElementById('manageRefresh').addEventListener('click', loadShares);
+  body.querySelectorAll('[data-copy-token]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const origin = location.origin;
+      const url = origin + '/share?t=' + encodeURIComponent(btn.dataset.copyToken);
+      navigator.clipboard.writeText(url).then(() => toast('✅ 链接已复制')).catch(() => toast('复制失败，请手动复制'));
+    });
+  });
+  body.querySelectorAll('[data-revoke-token]').forEach(btn => {
+    btn.addEventListener('click', () => revokeShare(btn.dataset.revokeToken));
+  });
+}
+
+async function revokeShare(token){
+  if (!confirm('确定撤销这条分享链接吗？\n撤销后任何人都无法再通过该链接下载。')) return;
+  try {
+    const resp = await fetch('/api/sign', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ action: 'share_revoke', token })
+    });
+    if (!resp.ok){
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.error || ('HTTP ' + resp.status));
+    }
+    toast('✅ 链接已撤销');
+    loadShares();
+  } catch (e) {
+    toast(`❌ 撤销失败：${e.message}`);
+  }
 }
 
 // 将云端数据转换为前端需要的格式（与后端 displayName 规则一致）
@@ -1196,14 +1382,27 @@ function bindEvents(){
     const b = e.target.closest('.ttl-btn');
     if (!b) return;
     shareTTL = Number(b.dataset.ttl);
-    document.querySelectorAll('.ttl-btn').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('#shareTtls .ttl-btn').forEach(x => x.classList.toggle('active', x === b));
+  });
+  document.getElementById('shareLimits').addEventListener('click', e => {
+    const b = e.target.closest('.limit-btn');
+    if (!b) return;
+    shareLimit = Number(b.dataset.limit);
+    document.querySelectorAll('#shareLimits .limit-btn').forEach(x => x.classList.toggle('active', x === b));
   });
   document.getElementById('shareCreateBtn').addEventListener('click', createShare);
   document.getElementById('shareCopyBtn').addEventListener('click', copyShare);
 
+  // 分享管理弹窗事件
+  document.getElementById('manageSharesBtn').addEventListener('click', openManage);
+  const manageModal = document.getElementById('manageModal');
+  manageModal.addEventListener('click', e => {
+    if (e.target.closest('[data-manage-close]')) closeManage();
+  });
+
   window.addEventListener('keydown', e => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); search.focus(); search.select(); }
-    if (e.key === 'Escape'){ closeModal(); closeShare(); document.body.classList.remove('dragging'); }
+    if (e.key === 'Escape'){ closeModal(); closeShare(); closeManage(); document.body.classList.remove('dragging'); }
   });
 }
 
