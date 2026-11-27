@@ -258,12 +258,50 @@ export async function onRequestPost({ request, env }) {
     return json({ name: data.n || displayName(data.k), size: Number(data.s) || 0, expiresAt: Number(data.e) });
   }
 
-  // ---------- 5c. 分享下载（公开，凭 token 代理读取文件） ----------
+  // ---------- 5c. 分享下载（公开，凭 token 代理读取 + CF 边缘缓存，减少 B2 回源） ----------
+  // 链路：浏览器 → CF Worker（校验 token）→ CF 边缘缓存 → 未命中才回源 B2
+  // 缓存按「文件 key」而非 token 作为 key，同一文件的多个分享链接可共享缓存；
+  // 缓存只在命中数据中心有效（CF 免费版机制），仍可显著削峰、降低 B2 被打的频率。
+  // 全程 try/catch 兜底：缓存读写失败一律退回直连 B2，绝不影响分享下载。
   if (action === 'share_download') {
     const result = await verifyShareToken(payload.token, shareSecret(env));
     if (result.error === 'expired') return text('链接已过期', 410);
     if (result.error) return text('链接无效或已被篡改', 403);
     const data = result.data;
+    const name = data.n || displayName(data.k);
+    const disposition = `attachment; filename="${name.replace(/["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+    const size = Number(data.s) || 0;
+    const CACHE_MAX = 20 * 1024 * 1024; // 超过 20MB 不缓存，避免 Workers 内存限制与 413
+
+    // 构造 GET 缓存 key（内部标识，不对外暴露；基于文件 key）
+    const reqOrigin = new URL(request.url).origin;
+    const cacheReq = new Request(
+      new URL('/__sharecache__/' + encodeURIComponent(data.k), reqOrigin).toString(),
+      { method: 'GET' }
+    );
+    let cache = null;
+    try { cache = caches.default; } catch (e) { cache = null; }
+
+    // 1) 先查缓存
+    if (cache && size > 0 && size <= CACHE_MAX) {
+      try {
+        const hit = await cache.match(cacheReq);
+        if (hit && hit.ok) {
+          return new Response(hit.body, {
+            status: 200,
+            headers: {
+              'Content-Type': hit.headers.get('Content-Type') || 'application/octet-stream',
+              'Content-Disposition': disposition,
+              'Cache-Control': 'private, max-age=0',
+              'X-Share-Cache': 'HIT',
+              ...CORS,
+            },
+          });
+        }
+      } catch (e) { /* 缓存读取异常 → 回源 */ }
+    }
+
+    // 2) 缓存未命中/不可用 → 回源 B2
     try {
       const signed = await aws.sign(new Request(objectUrl(env, data.k), { method: 'GET' }));
       const resp = await fetch(signed.url, { headers: signed.headers });
@@ -272,14 +310,26 @@ export async function onRequestPost({ request, env }) {
         return text(`读取文件失败 (${resp.status}): ${detail}`, 502);
       }
       const buf = await resp.arrayBuffer();
-      const name = data.n || displayName(data.k);
-      const disposition = `attachment; filename="${name.replace(/["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+      const contentType = resp.headers.get('Content-Type') || 'application/octet-stream';
+
+      // 3) 异步写缓存（失败不影响本次下载）
+      if (cache && size > 0 && size <= CACHE_MAX) {
+        try {
+          const cacheResp = new Response(buf.slice(0), {
+            status: 200,
+            headers: { 'Content-Type': contentType, 'Cache-Control': 'public, max-age=21600' },
+          });
+          await cache.put(cacheReq, cacheResp);
+        } catch (e) { /* 缓存写入失败 → 忽略 */ }
+      }
+
       return new Response(buf, {
         status: 200,
         headers: {
-          'Content-Type': resp.headers.get('Content-Type') || 'application/octet-stream',
+          'Content-Type': contentType,
           'Content-Disposition': disposition,
           'Cache-Control': 'private, max-age=0',
+          'X-Share-Cache': 'MISS',
           ...CORS,
         },
       });
